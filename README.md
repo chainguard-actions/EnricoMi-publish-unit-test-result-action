@@ -1,5 +1,7 @@
 # EnricoMi/publish-unit-test-result-action
 
+GitHub Action to publish unit test results on GitHub
+
 Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at [https://github.com/EnricoMi/publish-unit-test-result-action](https://github.com/EnricoMi/publish-unit-test-result-action).
 
 ## Versions
