@@ -1,4 +1,6 @@
 {
-  "upstream": "EnricoMi/publish-unit-test-result-action",
-  "version": "v2.23.0"
+  "owner": "EnricoMi",
+  "repo": "publish-unit-test-result-action",
+  "version": "",
+  "url": "https://github.com/EnricoMi/publish-unit-test-result-action"
 }
