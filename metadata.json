@@ -1,7 +1,0 @@
-{
-  "owner": "EnricoMi",
-  "name": "publish-unit-test-result-action",
-  "visibility": "internal",
-  "description": "GitHub Action to publish unit test results on GitHub",
-  "block_publish": false
-}
