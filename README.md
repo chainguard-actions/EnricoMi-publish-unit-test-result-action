@@ -8,7 +8,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 
 | Version | Tag | Upstream commit |
 |---------|-----|-----------------|
-| v2.23.0 | [`v2.23.0`](https://github.com/chainguard-actions/publish-unit-test-result-action/tree/v2.23.0) | — |
+| v2.23.0 | [`v2.23.0`](https://github.com/chainguard-actions/EnricoMi--publish-unit-test-result-action/tree/v2.23.0) | — |
 
 ## Privacy
 
