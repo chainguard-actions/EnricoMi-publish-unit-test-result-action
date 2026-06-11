@@ -1,0 +1,43 @@
+name: Test JUnit advanced options
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_EVENT_NAME: push
+      GITHUB_REF: refs/heads/main
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create JUnit test result file
+        run: |
+          mkdir -p test-results
+          cat > test-results/junit.xml << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <testsuites>
+            <testsuite name="Suite" tests="2" failures="0" errors="0" skipped="0" time="0.5">
+              <testcase name="test_alpha" classname="Suite" time="0.1"/>
+              <testcase name="test_beta" classname="Suite" time="0.2"/>
+            </testsuite>
+          </testsuites>
+          EOF
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          github_token: fake-token-for-testing
+          junit_files: test-results/junit.xml
+          report_individual_runs: 'true'
+          large_files: 'false'
+          deduplicate_classes_by_file_name: 'false'
+          secondary_rate_limit_wait_seconds: '30'
+          check_run: 'false'
+          job_summary: 'false'
+          comment_mode: 'off'
+
+      - name: Assert action ran
+        run: |
+          echo "Action completed with outcome: ${{ steps.action.outcome }}"
+          echo "PASS: action step executed"

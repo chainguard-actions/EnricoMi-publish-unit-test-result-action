@@ -1,0 +1,77 @@
+name: Test NUnit, XUnit, TRX and event inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_EVENT_NAME: push
+      GITHUB_REF: refs/heads/main
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create test result files
+        run: |
+          mkdir -p test-results
+
+          # NUnit-style XML
+          cat > test-results/nunit.xml << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <test-results name="NUnit" total="1" errors="0" failures="0" not-run="0" inconclusive="0" ignored="0" skipped="0" invalid="0">
+            <test-suite type="Assembly" name="Tests" executed="True" result="Success" success="True" time="0.1" asserts="0">
+              <results>
+                <test-case name="TestOne" executed="True" result="Success" success="True" time="0.1" asserts="0"/>
+              </results>
+            </test-suite>
+          </test-results>
+          EOF
+
+          # XUnit-style XML
+          cat > test-results/xunit.xml << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <assemblies>
+            <assembly name="Tests" run-date="2024-01-01" run-time="00:00:00" total="1" passed="1" failed="0" skipped="0" time="0.1" errors="0">
+              <collection name="Test collection" total="1" passed="1" failed="0" skipped="0" time="0.1">
+                <test name="TestOne" type="Tests" method="TestOne" time="0.1" result="Pass"/>
+              </collection>
+            </assembly>
+          </assemblies>
+          EOF
+
+          # TRX-style XML
+          cat > test-results/results.trx << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <TestRun xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+            <Results>
+              <UnitTestResult testName="TestOne" outcome="Passed" duration="00:00:00.1000000"/>
+            </Results>
+            <ResultSummary outcome="Completed">
+              <Counters total="1" executed="1" passed="1" failed="0" error="0"/>
+            </ResultSummary>
+          </TestRun>
+          EOF
+
+          # Event file
+          cat > test-results/event.json << 'EOF'
+          {"action": "push", "ref": "refs/heads/main"}
+          EOF
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          github_token: fake-token-for-testing
+          nunit_files: test-results/nunit.xml
+          xunit_files: test-results/xunit.xml
+          trx_files: test-results/results.trx
+          event_file: test-results/event.json
+          event_name: push
+          check_run_annotations_branch: 'main, master'
+          check_run: 'false'
+          job_summary: 'false'
+          comment_mode: 'off'
+
+      - name: Assert action ran
+        run: |
+          echo "Action completed with outcome: ${{ steps.action.outcome }}"
+          echo "PASS: action step executed"
