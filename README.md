@@ -1,6 +1,6 @@
 # EnricoMi/publish-unit-test-result-action
 
-GitHub Action to publish unit test results on GitHub
+Publishes JUnit, NUnit, XUnit, TRX, JSON test results on GitHub for .NET, Dart, Java, JS, Jest, Mocha, Python, Scala, …
 
 Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at [https://github.com/EnricoMi/publish-unit-test-result-action](https://github.com/EnricoMi/publish-unit-test-result-action).
 
