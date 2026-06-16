@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<test-run id="1" name="NUnit Tests" fullname="NUnit Tests" testcasecount="3" result="Passed" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="3" engine-version="3.11.0" clr-version="4.0.30319.42000" start-time="2023-01-01 00:00:00Z" end-time="2023-01-01 00:00:01Z" duration="1.0">
+  <test-suite type="Assembly" id="2" name="NUnitTests.dll" fullname="NUnitTests.dll" testcasecount="3" result="Passed" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="3" duration="1.0">
+    <test-suite type="TestFixture" id="3" name="TestClass" fullname="NUnitTests.TestClass" testcasecount="3" result="Passed" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="3" duration="1.0">
+      <test-case id="4" name="TestOne" fullname="NUnitTests.TestClass.TestOne" methodname="TestOne" classname="NUnitTests.TestClass" runstate="Runnable" seed="0" result="Passed" asserts="1" duration="0.3" start-time="2023-01-01 00:00:00Z" end-time="2023-01-01 00:00:00Z"/>
+      <test-case id="5" name="TestTwo" fullname="NUnitTests.TestClass.TestTwo" methodname="TestTwo" classname="NUnitTests.TestClass" runstate="Runnable" seed="0" result="Passed" asserts="1" duration="0.3" start-time="2023-01-01 00:00:00Z" end-time="2023-01-01 00:00:01Z"/>
+      <test-case id="6" name="TestThree" fullname="NUnitTests.TestClass.TestThree" methodname="TestThree" classname="NUnitTests.TestClass" runstate="Runnable" seed="0" result="Passed" asserts="1" duration="0.4" start-time="2023-01-01 00:00:01Z" end-time="2023-01-01 00:00:01Z"/>
+    </test-suite>
+  </test-suite>
+</test-run>

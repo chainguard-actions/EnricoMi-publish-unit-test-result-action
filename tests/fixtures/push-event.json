@@ -1,0 +1,12 @@
+{
+  "action": "push",
+  "ref": "refs/heads/main",
+  "repository": {
+    "default_branch": "main",
+    "full_name": "example/repo",
+    "name": "repo"
+  },
+  "sender": {
+    "login": "example-user"
+  }
+}

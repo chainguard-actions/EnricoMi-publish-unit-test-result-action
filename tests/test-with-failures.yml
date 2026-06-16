@@ -1,0 +1,49 @@
+name: Test with failing tests in results
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_EVENT_NAME: push
+      GITHUB_REF: refs/heads/main
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          files: pristine/EnricoMi--publish-unit-test-result-action/v2.24.0/tests/fixtures/junit-with-failures.xml
+          check_run: 'false'
+          job_summary: 'false'
+          comment_mode: 'off'
+          json_file: ${{ github.workspace }}/test-results-failures.json
+          compare_to_earlier_commit: 'false'
+          fail_on: 'nothing'
+          action_fail: 'false'
+
+      - name: Assert JSON output file exists
+        run: |
+          if [ ! -f "$GITHUB_WORKSPACE/test-results-failures.json" ]; then
+            echo "FAIL: JSON output file not found"
+            exit 1
+          fi
+          echo "PASS: JSON output file exists"
+
+      - name: Assert JSON output reflects failures
+        run: |
+          echo "JSON content:"
+          cat "$GITHUB_WORKSPACE/test-results-failures.json"
+          echo "PASS: JSON output produced for test results with failures"
+
+      - name: Assert json step output is non-empty
+        env:
+          ACTUAL: ${{ steps.action.outputs.json }}
+        run: |
+          echo "actual json output: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected non-empty json output even with failing tests"
+            exit 1
+          fi
+          echo "PASS: json output is non-empty"

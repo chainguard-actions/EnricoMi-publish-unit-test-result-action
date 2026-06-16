@@ -1,6 +1,11 @@
 {
   "owner": "EnricoMi",
   "repo": "publish-unit-test-result-action",
-  "version": "",
-  "url": "https://github.com/EnricoMi/publish-unit-test-result-action"
+  "version": "v2.24.0",
+  "commit_sha": "d0a4676d0e0b938bc201470d88276b7c74c712b3",
+  "url": "https://github.com/EnricoMi/publish-unit-test-result-action",
+  "policy_sha": "d636be7e43ef829af6e853da6b3c7566db9f72fe",
+  "test_policy_sha": "843adf9e4b8f85d0c08b27b9d0b09dd094b54702",
+  "test_agent_version": "1",
+  "harden_agent_version": "1"
 }

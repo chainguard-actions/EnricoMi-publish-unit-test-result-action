@@ -1,0 +1,53 @@
+name: Test basic usage with passing tests
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_EVENT_NAME: push
+      GITHUB_REF: refs/heads/main
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          files: pristine/EnricoMi--publish-unit-test-result-action/v2.24.0/tests/fixtures/junit-basic.xml
+          check_run: 'false'
+          job_summary: 'false'
+          comment_mode: 'off'
+          json_file: ${{ github.workspace }}/test-results.json
+          compare_to_earlier_commit: 'false'
+
+      - name: Assert JSON output file exists
+        run: |
+          if [ ! -f "$GITHUB_WORKSPACE/test-results.json" ]; then
+            echo "FAIL: JSON output file not found at $GITHUB_WORKSPACE/test-results.json"
+            exit 1
+          fi
+          echo "PASS: JSON output file exists"
+
+      - name: Assert JSON output contains test counts
+        run: |
+          echo "JSON content:"
+          cat "$GITHUB_WORKSPACE/test-results.json"
+          TESTS=$(python3 -c "import sys, json; d=json.load(open('$GITHUB_WORKSPACE/test-results.json')); print(d.get('stats', {}).get('tests', d.get('tests', '')))" 2>/dev/null || echo "")
+          echo "tests value: $TESTS"
+          if [ -z "$TESTS" ]; then
+            echo "FAIL: could not read tests count from JSON"
+            exit 1
+          fi
+          echo "PASS: JSON output contains test data"
+
+      - name: Assert json step output is non-empty
+        env:
+          ACTUAL: ${{ steps.action.outputs.json }}
+        run: |
+          echo "actual json output: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected non-empty json output"
+            exit 1
+          fi
+          echo "PASS: json output is non-empty"

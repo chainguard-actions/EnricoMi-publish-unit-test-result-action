@@ -1,0 +1,46 @@
+name: Test deprecated and extra inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_EVENT_NAME: push
+      GITHUB_REF: refs/heads/main
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          github_token_actor: ''
+          junit_files: actions/hardened/EnricoMi--publish-unit-test-result-action/v2.24.0/tests/fixtures/junit-basic.xml
+          check_run: 'false'
+          job_summary: 'false'
+          comment_mode: 'off'
+          json_file: ${{ github.workspace }}/test-results-deprecated.json
+          compare_to_earlier_commit: 'false'
+          report_individual_runs: 'true'
+          test_file_prefix: '+src/'
+          fail_on: 'nothing'
+          action_fail: 'false'
+
+      - name: Assert JSON output file exists
+        run: |
+          if [ ! -f "$GITHUB_WORKSPACE/test-results-deprecated.json" ]; then
+            echo "FAIL: JSON output file not found"
+            exit 1
+          fi
+          echo "PASS: JSON output file exists"
+
+      - name: Assert json step output is non-empty
+        env:
+          ACTUAL: ${{ steps.action.outputs.json }}
+        run: |
+          echo "actual json output: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected non-empty json output"
+            exit 1
+          fi
+          echo "PASS: json output is non-empty"

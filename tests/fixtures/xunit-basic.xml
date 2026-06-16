@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<assemblies timestamp="2023-01-01T00:00:00.0000000+00:00">
+  <assembly name="XUnitTests.dll" environment="64-bit .NET 6.0.0" test-framework="xUnit.net 2.4.1" run-date="2023-01-01" run-time="00:00:00" total="3" passed="3" failed="0" skipped="0" errors="0" time="1.000">
+    <collection total="3" passed="3" failed="0" skipped="0" errors="0" time="1.000" name="Test collection for XUnitTests.TestClass">
+      <test name="XUnitTests.TestClass.TestOne" type="XUnitTests.TestClass" method="TestOne" time="0.333" result="Pass"/>
+      <test name="XUnitTests.TestClass.TestTwo" type="XUnitTests.TestClass" method="TestTwo" time="0.333" result="Pass"/>
+      <test name="XUnitTests.TestClass.TestThree" type="XUnitTests.TestClass" method="TestThree" time="0.334" result="Pass"/>
+    </collection>
+  </assembly>
+</assemblies>

@@ -1,0 +1,48 @@
+name: Test comment and annotation options
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_EVENT_NAME: push
+      GITHUB_REF: refs/heads/main
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          files: actions/hardened/EnricoMi--publish-unit-test-result-action/v2.24.0/tests/fixtures/junit-basic.xml
+          check_run: 'false'
+          job_summary: 'false'
+          comment_mode: 'off'
+          comment_title: 'My Custom Test Results'
+          check_run_annotations_branch: 'main, master'
+          test_changes_limit: '5'
+          deduplicate_classes_by_file_name: 'false'
+          large_files: 'false'
+          json_file: ${{ github.workspace }}/test-results-comment-opts.json
+          compare_to_earlier_commit: 'false'
+          fail_on: 'nothing'
+          action_fail: 'false'
+
+      - name: Assert JSON output file exists
+        run: |
+          if [ ! -f "$GITHUB_WORKSPACE/test-results-comment-opts.json" ]; then
+            echo "FAIL: JSON output file not found"
+            exit 1
+          fi
+          echo "PASS: JSON output file exists"
+
+      - name: Assert json step output is non-empty
+        env:
+          ACTUAL: ${{ steps.action.outputs.json }}
+        run: |
+          echo "actual json output: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected non-empty json output"
+            exit 1
+          fi
+          echo "PASS: json output is non-empty"
