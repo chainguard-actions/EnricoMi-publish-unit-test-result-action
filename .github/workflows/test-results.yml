@@ -1,0 +1,73 @@
+name: Test Results (reference)
+
+on:
+  workflow_run:
+    workflows: ["CI/CD"]
+    types:
+      - completed
+permissions: {}
+
+jobs:
+  test-results:
+    name: Test Results (reference)
+    if: github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
+
+    steps:
+      - name: Download and Extract Artifacts
+        uses: dawidd6/action-download-artifact@fe9d59ce33ce92db8a6ac90b2c8be6b6d90417c8  # v15
+        with:
+          run_id: ${{ github.event.workflow_run.id }}
+          path: artifacts
+
+      - name: Publish Test Results
+        id: test-results
+        uses: EnricoMi/publish-unit-test-result-action/composite@c9bbcabcaf28c5ce2a9f8b6ee91c62873071b2ce  # master
+        with:
+          commit: ${{ github.event.workflow_run.head_sha }}
+          check_name: Test Results (reference)
+          event_file: artifacts/Event File/event.json
+          event_name: ${{ github.event.workflow_run.event }}
+          check_run_annotations_branch: "master, master-1.x, devel-1.0, devel-2.0"
+          files: "artifacts/**/*.xml"
+          log_level: DEBUG
+
+      - name: Set badge color
+        if: github.event.workflow_run.event != 'schedule'
+        env:
+          CONCLUSION: ${{ fromJSON( steps.test-results.outputs.json ).conclusion }}
+        run: |
+          case "$CONCLUSION" in
+            success)
+              echo "BADGE_COLOR=31c653" >> $GITHUB_ENV
+              ;;
+            failure)
+              echo "BADGE_COLOR=800000" >> $GITHUB_ENV
+              ;;
+            neutral)
+              echo "BADGE_COLOR=696969" >> $GITHUB_ENV
+              ;;
+          esac
+        shell: bash
+
+      - name: Create badge
+        if: github.event.workflow_run.event != 'schedule'
+        uses: emibcn/badge-action@808173dd03e2f30c980d03ee49e181626088eee8  # v2.0.3
+        with:
+          label: Tests
+          status: '${{ fromJSON( steps.test-results.outputs.json ).formatted.stats.tests }} tests, ${{ fromJSON( steps.test-results.outputs.json ).formatted.stats.runs }} runs: ${{ fromJSON( steps.test-results.outputs.json ).conclusion }}'
+          color: ${{ env.BADGE_COLOR }}
+          path: tests.svg
+
+      - name: Upload badge to Gist
+        # Upload only for master branch and not for scheduled event
+        if: >
+          github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'master' && github.event.workflow_run.event != 'schedule'
+        uses: andymckay/append-gist-action@ab30bf28df67017c7ad696500b218558c7c04db3  # v0.3
+        with:
+          token: ${{ secrets.GIST_TOKEN }}
+          gistURL: https://gist.githubusercontent.com/EnricoMi/612cb538c14731f1a8fefe504f519395
+          file: tests.svg

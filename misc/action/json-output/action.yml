@@ -28,7 +28,6 @@ runs:
   - name: JSON output
     if: (!cancelled())
     env:
-      JSON: ${{ inputs.json }}
       TITLE: ${{ fromJSON( inputs.json ).title }}
       SUMMARY: ${{ fromJSON( inputs.json ).summary }}
       CONCLUSION: ${{ fromJSON( inputs.json ).conclusion }}
@@ -39,6 +38,7 @@ runs:
       COMMIT: ${{ fromJSON( inputs.json ).stats.commit }}
       REFERENCE: ${{ fromJSON( inputs.json ).stats_with_delta.reference_commit }}
       ANNOTATIONS: ${{ fromJSON( inputs.json ).annotations }}
+      INPUT_JSON: ${{ inputs.json }}
     shell: bash
     run: |
       echo "title=$TITLE"
@@ -54,7 +54,7 @@ runs:
 
       echo
       echo "JSON output:"
-      echo "$JSON"
+      printf '%s\n' "$INPUT_JSON"
       echo
 
       if [[ "$CONCLUSION" != "success" ]]

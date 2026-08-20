@@ -1,4 +1,4 @@
-name: Test JSON file output
+name: Test glob pattern file matching
 on:
   workflow_dispatch:
 jobs:
@@ -7,15 +7,28 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Create JUnit test result file
+      - name: Create multiple JUnit test result files
         run: |
-          mkdir -p "$GITHUB_WORKSPACE/test-results"
-          cat > "$GITHUB_WORKSPACE/test-results/junit.xml" << 'EOF'
+          mkdir -p "$GITHUB_WORKSPACE/test-results/module-a"
+          mkdir -p "$GITHUB_WORKSPACE/test-results/module-b"
+
+          cat > "$GITHUB_WORKSPACE/test-results/module-a/junit.xml" << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
-          <testsuites name="Test Suite" tests="2" failures="0" errors="0" time="1.0">
-            <testsuite name="com.example.SampleTest" tests="2" failures="0" errors="0" time="1.0">
-              <testcase name="testAlpha" classname="com.example.SampleTest" time="0.5"/>
-              <testcase name="testBeta" classname="com.example.SampleTest" time="0.5"/>
+          <testsuites name="Module A" tests="2" failures="0" errors="0" time="1.0">
+            <testsuite name="com.example.ModuleA" tests="2" failures="0" errors="0" time="1.0">
+              <testcase name="testA1" classname="com.example.ModuleA" time="0.5"/>
+              <testcase name="testA2" classname="com.example.ModuleA" time="0.5"/>
+            </testsuite>
+          </testsuites>
+          EOF
+
+          cat > "$GITHUB_WORKSPACE/test-results/module-b/junit.xml" << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <testsuites name="Module B" tests="3" failures="0" errors="0" time="1.5">
+            <testsuite name="com.example.ModuleB" tests="3" failures="0" errors="0" time="1.5">
+              <testcase name="testB1" classname="com.example.ModuleB" time="0.5"/>
+              <testcase name="testB2" classname="com.example.ModuleB" time="0.5"/>
+              <testcase name="testB3" classname="com.example.ModuleB" time="0.5"/>
             </testsuite>
           </testsuites>
           EOF
@@ -34,16 +47,14 @@ jobs:
         uses: .
         continue-on-error: true
         with:
-          files: test-results/junit.xml
-          check_name: 'Test Results JSON Output'
+          files: |
+            test-results/**/*.xml
+          check_name: 'Test Results Glob'
           comment_mode: 'off'
           check_run: 'true'
           job_summary: 'true'
           fail_on: 'nothing'
           action_fail: 'false'
-          json_file: test-results/results.json
-          json_suite_details: 'true'
-          json_test_case_results: 'true'
 
       - name: Assert action ran and produced output or failed gracefully
         env:
@@ -57,14 +68,7 @@ jobs:
               echo "FAIL: action succeeded but json output is empty"
               exit 1
             fi
-            # Verify the JSON file was created
-            if [ ! -f "$GITHUB_WORKSPACE/test-results/results.json" ]; then
-              echo "FAIL: json_file was not created at test-results/results.json"
-              exit 1
-            fi
-            echo "JSON file contents:"
-            cat "$GITHUB_WORKSPACE/test-results/results.json"
-            echo "PASS: action succeeded with json output and json file"
+            echo "PASS: action succeeded with json output"
           elif [ "$OUTCOME" = "failure" ]; then
             echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
           else

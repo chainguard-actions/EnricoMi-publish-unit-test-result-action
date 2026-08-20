@@ -1,0 +1,222 @@
+name: CI/CD
+
+on:
+  push:
+    branches:
+      - 'master*'
+      - 'devel-*'
+    tags:
+      - '*'
+  pull_request:
+  schedule:
+    - cron: '10 9 1 * *'
+  workflow_dispatch:
+permissions: {}
+
+jobs:
+  dependencies:
+    name: Check python/requirements.txt
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - name: Check requirements.txt
+        run: |
+          (diff -w <(grep -v -e "python_version >  '3.7'" -e "python_version == '3.8'" -e "python_version >  '3.8'" -e "python_version == '3.9'" -e "python_version >  '3.9'" python/requirements.txt | sed -e "s/;.*//") python/requirements-3.7.txt || true) | (! grep -e "^<")
+          (diff -w <(grep -v -e "python_version <= '3.7'" -e "python_version >  '3.8'" -e "python_version == '3.9'" -e "python_version >  '3.9'" python/requirements.txt | sed -e "s/;.*//") python/requirements-3.8.txt || true) | (! grep -e "^<")
+          (diff -w <(grep -v -e "python_version <= '3.7'" -e "python_version == '3.8'" python/requirements.txt | sed -e "s/;.*//") <(sed -e "s/;.*//" python/requirements-post-3.8.txt) || true) | (! grep -e "^<")
+        shell: bash
+
+  upgrade:
+    name: Check Upgrades
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version: '3.8'
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version: '3.9'
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version: '3.10'
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version: '3.11'
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version: '3.12'
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version: '3.13'
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version: '3.14'
+      - name: Check for dependency updates
+        continue-on-error: true
+        run: |
+          pip install tox
+          tox
+          git diff | tee diff
+          if [ -s "diff" ]; then
+            echo 'Dependencies can be upgraded' >> $GITHUB_STEP_SUMMARY
+            echo '```diff' >> $GITHUB_STEP_SUMMARY
+            cat diff >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+        shell: bash
+
+  test-mac:
+    name: "Test macOS"
+    uses: "./.github/workflows/test-os.yml"
+    with:
+      os: '["macos-14", "macos-15", "macos-26"]'
+      python-version: '["3.10", "3.11", "3.12", "3.13", "3.14", "installed"]'
+      include: '[]'
+
+  test-lnx:
+    name: "Test Ubuntu"
+    uses: "./.github/workflows/test-os.yml"
+    with:
+      os: '["ubuntu-22.04", "ubuntu-24.04", "ubuntu-slim"]'
+      python-version: '["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "installed"]'
+      include: >
+        [
+          {"os": "ubuntu-22.04", "python-version": "3.8"},
+        ]
+
+  test-win:
+    name: "Test Windows"
+    uses: "./.github/workflows/test-os.yml"
+    with:
+      os: '["windows-2022", "windows-2025"]'
+      python-version: '["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "installed"]'
+      include: '[]'
+
+  publish:
+    name: "Publish"
+    needs: [test-mac, test-lnx, test-win]
+    # we run the action from this branch whenever we can (when it runs in our repo's context)
+    if: >
+      ! cancelled() &&
+      github.event.sender.login != 'dependabot[bot]' &&
+      ( github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository )
+    uses: "./.github/workflows/publish.yml"
+    permissions:
+      checks: write
+      pull-requests: write
+      security-events: write
+
+  config-deploy:
+    name: Configure Deployment
+    needs: [test-mac, test-lnx, test-win]
+    # do not build or deploy on forked repositories
+    if: github.repository_owner == 'EnricoMi'
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.action.outputs.image }}
+      image-exists: ${{ steps.image.outputs.exists }}
+      image-version: ${{ steps.action.outputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Extract action image and version
+        # we deploy from a specific commit on master (the one that mentions a new version the first time)
+        # so we need to tell docker/metadata-action to extract docker tags from that version
+        id: action
+        run: |
+          image=$(grep -A 10 "^runs:" action.yml | grep -E "^\s+image:\s" | sed -E -e "s/^\s+image:\s*'//" -e "s/docker:\/\///" -e "s/'\s*$//")
+          version=$(cut -d : -f 2 <<< "$image")
+          echo "image=$image" >>$GITHUB_OUTPUT
+          echo "version=$version" >>$GITHUB_OUTPUT
+        shell: bash
+
+      - name: Check action image existence
+        id: image
+        env:
+          DOCKER_CLI_EXPERIMENTAL: enabled
+          ACTION_IMAGE: ${{ steps.action.outputs.image }}
+        run: |
+          if docker manifest inspect "$ACTION_IMAGE"
+          then
+            echo "exists=true" >>$GITHUB_OUTPUT
+          fi
+        shell: bash
+
+  deploy:
+    name: Deploy to GitHub
+    needs: [publish, config-deploy]
+
+    # do not build or deploy on forked repositories
+    if: github.repository_owner == 'EnricoMi'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Docker meta
+        id: docker-meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051  # v5.10.0
+        with:
+          images: ghcr.io/EnricoMi/publish-unit-test-result-action
+          flavor: |
+            latest=false
+            prefix=v
+          tags: |
+            type=sha
+            type=ref,event=tag
+            type=semver,pattern={{major}},value=${{ needs.config-deploy.outputs.image-version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.config-deploy.outputs.image-version }}
+            type=semver,pattern={{version}},value=${{ needs.config-deploy.outputs.image-version }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130  # v3.7.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f  # v3.12.0
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9  # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.CR_PAT }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8  # v6.19.2
+        with:
+          tags: ${{ steps.docker-meta.outputs.tags }}
+          labels: ${{ steps.docker-meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          pull: true
+          # deploy image actions from commits pushed to master and
+          # deploy Dockerfile actions from pushed version tags (no major versions)
+          push: |
+            ${{
+              github.event_name == 'push' && (
+                needs.config-deploy.outputs.image != 'Dockerfile' && startsWith(github.ref, 'refs/heads/master') && needs.config-deploy.outputs.image-exists != 'true' ||
+                needs.config-deploy.outputs.image == 'Dockerfile' && startsWith(github.ref, 'refs/tags/v') && contains(github.ref, '.')
+              )
+            }}
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
+
+  event_file:
+    name: "Event File"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Upload
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
+        with:
+          name: Event File
+          path: ${{ github.event_path }}

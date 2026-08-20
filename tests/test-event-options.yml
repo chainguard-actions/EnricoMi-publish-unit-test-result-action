@@ -1,4 +1,4 @@
-name: Test JSON file output
+name: Test event and commit options
 on:
   workflow_dispatch:
 jobs:
@@ -7,18 +7,29 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Create JUnit test result file
+      - name: Create JUnit test result file and event file
         run: |
           mkdir -p "$GITHUB_WORKSPACE/test-results"
           cat > "$GITHUB_WORKSPACE/test-results/junit.xml" << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <testsuites name="Test Suite" tests="2" failures="0" errors="0" time="1.0">
-            <testsuite name="com.example.SampleTest" tests="2" failures="0" errors="0" time="1.0">
-              <testcase name="testAlpha" classname="com.example.SampleTest" time="0.5"/>
-              <testcase name="testBeta" classname="com.example.SampleTest" time="0.5"/>
+            <testsuite name="com.example.EventTest" tests="2" failures="0" errors="0" time="1.0">
+              <testcase name="testOne" classname="com.example.EventTest" time="0.5"/>
+              <testcase name="testTwo" classname="com.example.EventTest" time="0.5"/>
             </testsuite>
           </testsuites>
           EOF
+          # Create a minimal event file simulating a push event
+          cat > "$GITHUB_WORKSPACE/test-results/event.json" << 'EOF'
+          {
+            "action": "push",
+            "repository": {
+              "default_branch": "main"
+            }
+          }
+          EOF
+          # Get the current commit SHA
+          echo "CURRENT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - name: Set up a git origin reachable inside the Docker container
         run: |
@@ -35,15 +46,15 @@ jobs:
         continue-on-error: true
         with:
           files: test-results/junit.xml
-          check_name: 'Test Results JSON Output'
+          check_name: 'Test Results Event Options'
           comment_mode: 'off'
           check_run: 'true'
           job_summary: 'true'
           fail_on: 'nothing'
           action_fail: 'false'
-          json_file: test-results/results.json
-          json_suite_details: 'true'
-          json_test_case_results: 'true'
+          event_file: test-results/event.json
+          event_name: 'push'
+          commit: ${{ env.CURRENT_SHA }}
 
       - name: Assert action ran and produced output or failed gracefully
         env:
@@ -57,14 +68,7 @@ jobs:
               echo "FAIL: action succeeded but json output is empty"
               exit 1
             fi
-            # Verify the JSON file was created
-            if [ ! -f "$GITHUB_WORKSPACE/test-results/results.json" ]; then
-              echo "FAIL: json_file was not created at test-results/results.json"
-              exit 1
-            fi
-            echo "JSON file contents:"
-            cat "$GITHUB_WORKSPACE/test-results/results.json"
-            echo "PASS: action succeeded with json output and json file"
+            echo "PASS: action succeeded with json output"
           elif [ "$OUTCOME" = "failure" ]; then
             echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
           else

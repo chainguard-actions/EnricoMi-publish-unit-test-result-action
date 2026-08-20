@@ -1,4 +1,4 @@
-name: Test JSON file output
+name: Test comment and annotation options
 on:
   workflow_dispatch:
 jobs:
@@ -12,10 +12,11 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/test-results"
           cat > "$GITHUB_WORKSPACE/test-results/junit.xml" << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
-          <testsuites name="Test Suite" tests="2" failures="0" errors="0" time="1.0">
-            <testsuite name="com.example.SampleTest" tests="2" failures="0" errors="0" time="1.0">
-              <testcase name="testAlpha" classname="com.example.SampleTest" time="0.5"/>
-              <testcase name="testBeta" classname="com.example.SampleTest" time="0.5"/>
+          <testsuites name="Test Suite" tests="3" failures="0" errors="0" time="1.5">
+            <testsuite name="com.example.CommentTest" tests="3" failures="0" errors="0" time="1.5">
+              <testcase name="testAlpha" classname="com.example.CommentTest" time="0.5"/>
+              <testcase name="testBeta" classname="com.example.CommentTest" time="0.5"/>
+              <testcase name="testGamma" classname="com.example.CommentTest" time="0.5"/>
             </testsuite>
           </testsuites>
           EOF
@@ -35,15 +36,15 @@ jobs:
         continue-on-error: true
         with:
           files: test-results/junit.xml
-          check_name: 'Test Results JSON Output'
+          check_name: 'Test Results Comment Options'
+          comment_title: 'My Custom Comment Title'
           comment_mode: 'off'
+          test_changes_limit: '5'
+          check_run_annotations_branch: 'main, master, act-harness'
           check_run: 'true'
           job_summary: 'true'
           fail_on: 'nothing'
           action_fail: 'false'
-          json_file: test-results/results.json
-          json_suite_details: 'true'
-          json_test_case_results: 'true'
 
       - name: Assert action ran and produced output or failed gracefully
         env:
@@ -57,14 +58,7 @@ jobs:
               echo "FAIL: action succeeded but json output is empty"
               exit 1
             fi
-            # Verify the JSON file was created
-            if [ ! -f "$GITHUB_WORKSPACE/test-results/results.json" ]; then
-              echo "FAIL: json_file was not created at test-results/results.json"
-              exit 1
-            fi
-            echo "JSON file contents:"
-            cat "$GITHUB_WORKSPACE/test-results/results.json"
-            echo "PASS: action succeeded with json output and json file"
+            echo "PASS: action succeeded with json output"
           elif [ "$OUTCOME" = "failure" ]; then
             echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
           else
