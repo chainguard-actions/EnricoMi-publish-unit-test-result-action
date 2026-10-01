@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Test Suite" tests="3" failures="0" errors="0" time="1.5">
+  <testsuite name="com.example.BasicTests" tests="3" failures="0" errors="0" time="1.5">
+    <testcase name="testAddition" classname="com.example.BasicTests" time="0.5"/>
+    <testcase name="testSubtraction" classname="com.example.BasicTests" time="0.5"/>
+    <testcase name="testMultiplication" classname="com.example.BasicTests" time="0.5"/>
+  </testsuite>
+</testsuites>

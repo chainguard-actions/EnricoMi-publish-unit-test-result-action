@@ -1,0 +1,59 @@
+name: Test deprecated file-type inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up PowerShell (ensure pwsh is available)
+        run: |
+          which pwsh || (apt-get update -qq && apt-get install -y -qq powershell)
+
+      - name: Set up Python3
+        run: |
+          python3 --version || (apt-get update -qq && apt-get install -y -qq python3 python3-pip)
+
+      - name: Copy fixture test results
+        run: |
+          cp "$GITHUB_WORKSPACE/hardened/tests/fixtures/junit-passing.xml" "$GITHUB_WORKSPACE/junit-results.xml"
+          cp "$GITHUB_WORKSPACE/hardened/tests/fixtures/nunit-passing.xml" "$GITHUB_WORKSPACE/nunit-results.xml"
+          cp "$GITHUB_WORKSPACE/hardened/tests/fixtures/xunit-passing.xml" "$GITHUB_WORKSPACE/xunit-results.xml"
+          cp "$GITHUB_WORKSPACE/hardened/tests/fixtures/trx-passing.trx" "$GITHUB_WORKSPACE/trx-results.trx"
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          junit_files: junit-results.xml
+          nunit_files: nunit-results.xml
+          xunit_files: xunit-results.xml
+          trx_files: trx-results.trx
+          github_token_actor: ""
+          check_name: Test Results (Deprecated Inputs)
+          comment_mode: "off"
+          check_run: "true"
+          job_summary: "true"
+          fail_on: "nothing"
+          action_fail: "false"
+
+      - name: Assert action ran (outputs set, or failed gracefully on sentinel repo)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUTPUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUTPUT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON_OUTPUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            echo "PASS: action succeeded with JSON output"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

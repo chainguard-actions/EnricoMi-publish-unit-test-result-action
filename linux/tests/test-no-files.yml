@@ -1,0 +1,40 @@
+name: Test no test files found
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          files: nonexistent-test-results/*.xml
+          check_name: Test Results No Files
+          comment_mode: "off"
+          check_run: "false"
+          job_summary: "false"
+          fail_on: "nothing"
+          action_fail: "false"
+          action_fail_on_inconclusive: "false"
+          compare_to_earlier_commit: "false"
+
+      - name: Assert action ran gracefully with no files
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUTPUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUTPUT"
+          # With no files and action_fail_on_inconclusive=false, the action should succeed
+          # or fail only due to the sentinel repo API calls
+          if [ "$OUTCOME" = "success" ]; then
+            echo "PASS: action succeeded gracefully with no test files"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable, or no files found)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

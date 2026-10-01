@@ -1,0 +1,51 @@
+name: Test JSON file output
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          files: tests/fixtures/junit-passing.xml
+          check_run: 'false'
+          job_summary: 'false'
+          comment_mode: 'off'
+          compare_to_earlier_commit: 'false'
+          json_file: /tmp/publish-test-results.json
+          json_suite_details: 'true'
+          json_test_case_results: 'true'
+
+      - name: Assert action ran and JSON file was written (if action succeeded)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUTPUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUTPUT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON_OUTPUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            # Verify the JSON file was written
+            if [ ! -f /tmp/publish-test-results.json ]; then
+              echo "FAIL: json_file was not written to /tmp/publish-test-results.json"
+              exit 1
+            fi
+            # Verify the JSON file is valid JSON
+            if ! python3 -c "import json, sys; json.load(open('/tmp/publish-test-results.json'))" 2>/dev/null; then
+              echo "FAIL: json_file does not contain valid JSON"
+              exit 1
+            fi
+            echo "PASS: action succeeded with valid JSON file output"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

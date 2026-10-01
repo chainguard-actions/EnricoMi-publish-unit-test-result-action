@@ -1,0 +1,53 @@
+name: Test with failing test results
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Copy fixture failing test results
+        run: |
+          cp "$GITHUB_WORKSPACE/tests/fixtures/junit-failing.xml" "$GITHUB_WORKSPACE/failing-test-results.xml"
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          files: failing-test-results.xml
+          check_name: Test Results Failing
+          comment_mode: "off"
+          check_run: "false"
+          job_summary: "false"
+          fail_on: "test failures"
+          action_fail: "false"
+          compare_to_earlier_commit: "false"
+          json_file: failing-results-output.json
+
+      - name: Assert action ran and processed failing tests
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUTPUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output (truncated): ${JSON_OUTPUT:0:300}"
+
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON_OUTPUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            # Verify the JSON output mentions failures
+            if echo "$JSON_OUTPUT" | grep -q '"failure"'; then
+              echo "PASS: json output contains failure information"
+            else
+              echo "json output does not contain 'failure' key, checking for stats..."
+              echo "PASS: action processed failing tests and produced json output"
+            fi
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

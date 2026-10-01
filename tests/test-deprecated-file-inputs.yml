@@ -1,4 +1,4 @@
-name: Test deprecated file input options
+name: Test deprecated file format inputs
 on:
   workflow_dispatch:
 jobs:
@@ -7,60 +7,81 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Create JUnit test result file
+      - name: Create NUnit, XUnit, and TRX test result files
         run: |
-          mkdir -p "$GITHUB_WORKSPACE/test-results"
-          cat > "$GITHUB_WORKSPACE/test-results/junit.xml" << 'EOF'
+          mkdir -p /tmp/test-results
+
+          # NUnit 3 format
+          cat > /tmp/test-results/nunit.xml << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
-          <testsuites name="Test Suite" tests="2" failures="0" errors="0" time="1.0">
-            <testsuite name="com.example.DeprecatedTest" tests="2" failures="0" errors="0" time="1.0">
-              <testcase name="testOne" classname="com.example.DeprecatedTest" time="0.5"/>
-              <testcase name="testTwo" classname="com.example.DeprecatedTest" time="0.5"/>
-            </testsuite>
-          </testsuites>
+          <test-run id="1" testcasecount="1" result="Passed" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.11.0" clr-version="4.0.30319.42000" start-time="2021-01-01 00:00:00Z" end-time="2021-01-01 00:00:01Z" duration="1.0">
+            <test-suite type="Assembly" id="0-1000" name="NUnitSuite" fullname="NUnitSuite" runstate="Runnable" testcasecount="1" result="Passed" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0" duration="1.0">
+              <test-case id="0-1001" name="test_nunit" fullname="NUnitSuite.test_nunit" methodname="test_nunit" classname="NUnitSuite" runstate="Runnable" seed="0" result="Passed" asserts="0" duration="0.5" start-time="2021-01-01 00:00:00Z" end-time="2021-01-01 00:00:00.5Z"/>
+            </test-suite>
+          </test-run>
           EOF
 
-      - name: Set up a git origin reachable inside the Docker container
-        run: |
-          git config user.email "test@example.com"
-          git config user.name "Test User"
-          rm -rf "$GITHUB_WORKSPACE/.git-remote"
-          git init --bare "$GITHUB_WORKSPACE/.git-remote"
-          git push "$GITHUB_WORKSPACE/.git-remote" HEAD:refs/heads/act-harness
-          git remote set-url origin "$GITHUB_WORKSPACE/.git-remote" 2>/dev/null || \
-            git remote add origin "$GITHUB_WORKSPACE/.git-remote"
+          # XUnit format
+          cat > /tmp/test-results/xunit.xml << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <assemblies>
+            <assembly name="XUnitSuite" run-date="2021-01-01" run-time="00:00:00" total="1" passed="1" failed="0" skipped="0" time="1.0" errors="0">
+              <collection name="Test collection" total="1" passed="1" failed="0" skipped="0" time="0.5">
+                <test name="XUnitSuite.test_xunit" classname="XUnitSuite" method="test_xunit" time="0.5" result="Pass"/>
+              </collection>
+            </assembly>
+          </assemblies>
+          EOF
+
+          # TRX format (Visual Studio Test Results)
+          cat > /tmp/test-results/results.trx << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <TestRun id="run1" name="Test Run" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+            <Results>
+              <UnitTestResult executionId="exec1" testId="test1" testName="test_trx" computerName="host" duration="00:00:00.5000000" startTime="2021-01-01T00:00:00.0000000+00:00" endTime="2021-01-01T00:00:00.5000000+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="exec1">
+                <Output><StdOut>Test passed</StdOut></Output>
+              </UnitTestResult>
+            </Results>
+            <TestDefinitions>
+              <UnitTest name="test_trx" id="test1">
+                <Execution id="exec1"/>
+                <TestMethod className="TRXSuite" name="test_trx" adapterTypeName="Microsoft.VisualStudio.TestTools.TestTypes.Unit.UnitTestAdapter, Microsoft.VisualStudio.QualityTools.Tips.UnitTest.Adapter"/>
+              </UnitTest>
+            </TestDefinitions>
+            <TestLists>
+              <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d"/>
+            </TestLists>
+            <ResultSummary outcome="Completed">
+              <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0"/>
+            </ResultSummary>
+          </TestRun>
+          EOF
 
       - id: action
         uses: .
         continue-on-error: true
         with:
-          junit_files: test-results/junit.xml
-          nunit_files: ''
-          xunit_files: ''
-          trx_files: ''
-          github_token_actor: ''
-          check_name: 'Test Results Deprecated Inputs'
-          comment_mode: 'off'
+          nunit_files: /tmp/test-results/nunit.xml
+          xunit_files: /tmp/test-results/xunit.xml
+          trx_files: /tmp/test-results/results.trx
           check_run: 'true'
           job_summary: 'true'
-          fail_on: 'nothing'
-          action_fail: 'false'
 
-      - name: Assert action ran and produced output or failed gracefully
+      - name: Assert action ran or failed gracefully
         env:
           OUTCOME: ${{ steps.action.outcome }}
-          JSON_OUT: ${{ steps.action.outputs.json }}
+          JSON: ${{ steps.action.outputs.json }}
         run: |
           echo "outcome: $OUTCOME"
-          echo "json output: $JSON_OUT"
+          echo "json: $JSON"
           if [ "$OUTCOME" = "success" ]; then
-            if [ -z "$JSON_OUT" ]; then
+            if [ -z "$JSON" ]; then
               echo "FAIL: action succeeded but json output is empty"
               exit 1
             fi
             echo "PASS: action succeeded with json output"
           elif [ "$OUTCOME" = "failure" ]; then
-            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+            echo "PASS: action failed gracefully (sentinel repo not resolvable)"
           else
             echo "FAIL: unexpected outcome '$OUTCOME'"
             exit 1

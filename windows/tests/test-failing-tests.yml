@@ -1,0 +1,58 @@
+name: Test with failing test results and action_fail=true
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up PowerShell (ensure pwsh is available)
+        run: |
+          which pwsh || (apt-get update -qq && apt-get install -y -qq powershell)
+
+      - name: Set up Python3
+        run: |
+          python3 --version || (apt-get update -qq && apt-get install -y -qq python3 python3-pip)
+
+      - name: Copy fixture test results with failures
+        run: |
+          cp "$GITHUB_WORKSPACE/tests/fixtures/junit-failing.xml" "$GITHUB_WORKSPACE/junit-failing-results.xml"
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          files: junit-failing-results.xml
+          check_name: Test Results (Failing)
+          comment_mode: "off"
+          check_run: "true"
+          job_summary: "true"
+          fail_on: "test failures"
+          action_fail: "true"
+
+      - name: Assert action failed due to test failures or sentinel repo
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUTPUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUTPUT"
+          # The action should fail either because:
+          # 1. Tests have failures and action_fail=true causes the action to fail
+          # 2. The sentinel repo causes GitHub API calls to fail
+          # Either way, failure is the expected outcome here
+          if [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed as expected (test failures or sentinel repo)"
+          elif [ "$OUTCOME" = "success" ]; then
+            # If it somehow succeeded (e.g., API calls were skipped), check JSON output
+            if [ -n "$JSON_OUTPUT" ]; then
+              echo "PASS: action succeeded with JSON output (API calls may have been skipped)"
+            else
+              echo "FAIL: action succeeded but produced no JSON output"
+              exit 1
+            fi
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

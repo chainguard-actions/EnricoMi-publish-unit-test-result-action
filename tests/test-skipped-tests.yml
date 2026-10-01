@@ -1,4 +1,4 @@
-name: Test publishing results with skipped tests
+name: Test with skipped tests in JUnit XML
 on:
   workflow_dispatch:
 jobs:
@@ -7,27 +7,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Create JUnit test result file with skipped tests
-        run: |
-          mkdir -p "$GITHUB_WORKSPACE/test-results"
-          cat > "$GITHUB_WORKSPACE/test-results/junit-skipped.xml" << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <testsuites name="Test Suite" tests="5" failures="0" errors="0" skipped="2" time="2.5">
-            <testsuite name="com.example.SkipTest" tests="5" failures="0" errors="0" skipped="2" time="2.5">
-              <testcase name="testRunning1" classname="com.example.SkipTest" time="0.5"/>
-              <testcase name="testRunning2" classname="com.example.SkipTest" time="0.5"/>
-              <testcase name="testRunning3" classname="com.example.SkipTest" time="0.5"/>
-              <testcase name="testSkipped1" classname="com.example.SkipTest" time="0.0">
-                <skipped message="Not implemented yet"/>
-              </testcase>
-              <testcase name="testSkipped2" classname="com.example.SkipTest" time="0.0">
-                <skipped message="Requires external service"/>
-              </testcase>
-            </testsuite>
-          </testsuites>
-          EOF
-
-      - name: Set up a git origin reachable inside the Docker container
+      - name: Set up git origin reachable inside Docker container
         run: |
           git config user.email "test@example.com"
           git config user.name "Test User"
@@ -37,35 +17,52 @@ jobs:
           git remote set-url origin "$GITHUB_WORKSPACE/.git-remote" 2>/dev/null || \
             git remote add origin "$GITHUB_WORKSPACE/.git-remote"
 
+      - name: Create JUnit XML with skipped tests
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/test-results"
+          cat > "$GITHUB_WORKSPACE/test-results/results.xml" << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <testsuites>
+            <testsuite name="SkipSuite" tests="4" failures="0" errors="0" skipped="2" time="1.0">
+              <testcase name="test_run_one" classname="SkipSuite" time="0.3"/>
+              <testcase name="test_run_two" classname="SkipSuite" time="0.3"/>
+              <testcase name="test_skip_one" classname="SkipSuite" time="0.0">
+                <skipped message="Not implemented yet"/>
+              </testcase>
+              <testcase name="test_skip_two" classname="SkipSuite" time="0.0">
+                <skipped message="Requires external service"/>
+              </testcase>
+            </testsuite>
+          </testsuites>
+          EOF
+
       - id: action
         uses: .
         continue-on-error: true
         with:
-          files: test-results/junit-skipped.xml
-          check_name: 'Test Results Skipped'
-          comment_mode: 'off'
-          check_run: 'true'
+          files: test-results/*.xml
+          check_run: 'false'
           job_summary: 'true'
+          comment_mode: 'off'
           fail_on: 'nothing'
           action_fail: 'false'
-          report_individual_runs: 'true'
-          check_run_annotations: 'all tests, skipped tests'
+          check_run_annotations: 'skipped tests'
 
-      - name: Assert action ran and produced output or failed gracefully
+      - name: Assert action ran and produced JSON output
         env:
           OUTCOME: ${{ steps.action.outcome }}
           JSON_OUT: ${{ steps.action.outputs.json }}
         run: |
           echo "outcome: $OUTCOME"
-          echo "json output: $JSON_OUT"
+          echo "json: $JSON_OUT"
           if [ "$OUTCOME" = "success" ]; then
             if [ -z "$JSON_OUT" ]; then
               echo "FAIL: action succeeded but json output is empty"
               exit 1
             fi
-            echo "PASS: action succeeded with json output"
+            echo "PASS: action succeeded with JSON output"
           elif [ "$OUTCOME" = "failure" ]; then
-            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+            echo "PASS: action failed gracefully (sentinel repo not resolvable)"
           else
             echo "FAIL: unexpected outcome '$OUTCOME'"
             exit 1

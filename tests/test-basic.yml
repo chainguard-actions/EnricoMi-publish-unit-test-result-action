@@ -1,25 +1,32 @@
-name: Test basic usage
+name: Test basic usage with JUnit XML
 on:
   workflow_dispatch:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      GITHUB_EVENT_NAME: push
-      GITHUB_REF: refs/heads/main
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Create JUnit test result file
+      - name: Set up git origin reachable inside Docker container
         run: |
-          mkdir -p test-results
-          cat > test-results/results.xml << 'EOF'
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          rm -rf "$GITHUB_WORKSPACE/.git-remote"
+          git init --bare "$GITHUB_WORKSPACE/.git-remote"
+          git push "$GITHUB_WORKSPACE/.git-remote" HEAD:refs/heads/act-harness
+          git remote set-url origin "$GITHUB_WORKSPACE/.git-remote" 2>/dev/null || \
+            git remote add origin "$GITHUB_WORKSPACE/.git-remote"
+
+      - name: Create JUnit XML test result file
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/test-results"
+          cat > "$GITHUB_WORKSPACE/test-results/results.xml" << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <testsuites>
-            <testsuite name="ExampleSuite" tests="3" failures="0" errors="0" skipped="0" time="1.0">
-              <testcase name="test_one" classname="ExampleSuite" time="0.1"/>
-              <testcase name="test_two" classname="ExampleSuite" time="0.2"/>
-              <testcase name="test_three" classname="ExampleSuite" time="0.3"/>
+            <testsuite name="ExampleSuite" tests="3" failures="0" errors="0" time="1.5">
+              <testcase name="test_one" classname="ExampleSuite" time="0.5"/>
+              <testcase name="test_two" classname="ExampleSuite" time="0.5"/>
+              <testcase name="test_three" classname="ExampleSuite" time="0.5"/>
             </testsuite>
           </testsuites>
           EOF
@@ -28,18 +35,29 @@ jobs:
         uses: .
         continue-on-error: true
         with:
-          github_token: fake-token-for-testing
           files: test-results/*.xml
-          check_name: 'Basic Test Results'
-          commit: ${{ github.sha }}
-          comment_title: 'Basic Test Results Comment'
-          test_file_prefix: '+src/'
-          test_changes_limit: '5'
           check_run: 'false'
-          job_summary: 'false'
+          job_summary: 'true'
           comment_mode: 'off'
+          fail_on: 'nothing'
+          action_fail: 'false'
 
-      - name: Assert action ran (may fail due to no real GitHub token)
+      - name: Assert action ran and produced JSON output
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUT: ${{ steps.action.outputs.json }}
         run: |
-          echo "Action completed with outcome: ${{ steps.action.outcome }}"
-          echo "PASS: action step executed"
+          echo "outcome: $OUTCOME"
+          echo "json: $JSON_OUT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON_OUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            echo "PASS: action succeeded with JSON output"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

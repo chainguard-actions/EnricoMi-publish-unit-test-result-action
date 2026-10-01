@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Test Suite" tests="3" failures="1" errors="0" time="1.500">
+  <testsuite name="com.example.TestClass" tests="3" failures="1" errors="0" time="1.500">
+    <testcase name="testOne" classname="com.example.TestClass" time="0.100"/>
+    <testcase name="testTwo" classname="com.example.TestClass" time="0.200">
+      <failure message="AssertionError: expected true but was false">
+        AssertionError: expected true but was false
+          at com.example.TestClass.testTwo(TestClass.java:42)
+      </failure>
+    </testcase>
+    <testcase name="testThree" classname="com.example.TestClass" time="1.200"/>
+  </testsuite>
+</testsuites>

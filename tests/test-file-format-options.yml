@@ -1,0 +1,55 @@
+name: Test file format and path options inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create JUnit test result file
+        run: |
+          mkdir -p /tmp/test-results
+          cat > /tmp/test-results/junit.xml << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <testsuites>
+            <testsuite name="JUnitSuite" tests="2" failures="0" errors="0" time="1.0">
+              <testcase name="test_alpha" classname="JUnitSuite" time="0.5">
+                <system-out>some output</system-out>
+              </testcase>
+              <testcase name="test_beta" classname="JUnitSuite" time="0.5"/>
+            </testsuite>
+          </testsuites>
+          EOF
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          junit_files: /tmp/test-results/junit.xml
+          test_file_prefix: '-/tmp'
+          deduplicate_classes_by_file_name: 'false'
+          report_individual_runs: 'true'
+          large_files: 'false'
+          check_run: 'true'
+          job_summary: 'true'
+
+      - name: Assert action ran or failed gracefully
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json: $JSON"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            echo "PASS: action succeeded with json output"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

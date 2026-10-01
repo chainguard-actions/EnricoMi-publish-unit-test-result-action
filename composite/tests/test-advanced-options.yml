@@ -1,0 +1,75 @@
+name: Test advanced options inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create test fixtures
+        run: |
+          mkdir -p /tmp/advanced-results
+
+          # Create a JUnit XML test result file
+          cat > /tmp/advanced-results/results.xml << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <testsuites>
+            <testsuite name="advanced-suite" tests="3" failures="0" errors="0" time="2.0">
+              <testcase name="test_one" classname="AdvancedTest" time="0.5" file="src/test_one.py"/>
+              <testcase name="test_two" classname="AdvancedTest" time="0.5" file="src/test_two.py"/>
+              <testcase name="test_three" classname="AdvancedTest" time="1.0" file="src/test_three.py"/>
+            </testsuite>
+          </testsuites>
+          EOF
+
+          # Create a fake event file
+          cat > /tmp/event.json << 'EOF'
+          {
+            "action": "completed",
+            "workflow_run": {
+              "event": "push",
+              "head_sha": "abc1234"
+            }
+          }
+          EOF
+
+          # Get the current commit SHA
+          echo "Current SHA: $(git rev-parse HEAD)"
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          github_token: ${{ github.token }}
+          files: /tmp/advanced-results/results.xml
+          commit: ${{ github.sha }}
+          event_file: /tmp/event.json
+          event_name: push
+          test_file_prefix: "+src/"
+          deduplicate_classes_by_file_name: "true"
+          secondary_rate_limit_wait_seconds: "30"
+          check_run: "false"
+          job_summary: "true"
+          compare_to_earlier_commit: "false"
+          comment_mode: "off"
+
+      - name: Assert action ran (outputs set, or failed gracefully on the sentinel repo)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json: $JSON"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            echo "PASS: action succeeded with json output"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

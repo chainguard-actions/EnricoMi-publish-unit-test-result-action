@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<assemblies>
+  <assembly name="MyTests" run-date="2024-01-01" run-time="00:00:01" total="2" passed="2" failed="0" skipped="0" errors="0" time="0.3">
+    <collection name="Test collection" total="2" passed="2" failed="0" skipped="0" time="0.3">
+      <test name="MyTests.TestOne" type="MyTests" method="TestOne" time="0.1" result="Pass"/>
+      <test name="MyTests.TestTwo" type="MyTests" method="TestTwo" time="0.2" result="Pass"/>
+    </collection>
+  </assembly>
+</assemblies>

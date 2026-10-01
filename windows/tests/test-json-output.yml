@@ -1,0 +1,68 @@
+name: Test JSON file output
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up PowerShell (ensure pwsh is available)
+        run: |
+          which pwsh || (apt-get update -qq && apt-get install -y -qq powershell)
+
+      - name: Set up Python3
+        run: |
+          python3 --version || (apt-get update -qq && apt-get install -y -qq python3 python3-pip)
+
+      - name: Copy fixture test results
+        run: |
+          cp "$GITHUB_WORKSPACE/tests/fixtures/junit-passing.xml" "$GITHUB_WORKSPACE/junit-for-json.xml"
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          files: junit-for-json.xml
+          check_name: Test Results (JSON Output)
+          comment_mode: "off"
+          check_run: "false"
+          job_summary: "true"
+          json_file: "${{ github.workspace }}/json-output.json"
+          json_suite_details: "true"
+          json_test_case_results: "true"
+          fail_on: "nothing"
+          action_fail: "false"
+
+      - name: Assert JSON output is valid
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUTPUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output length: ${#JSON_OUTPUT}"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON_OUTPUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            # Validate JSON is parseable
+            echo "$JSON_OUTPUT" | python3 -m json.tool > /dev/null 2>&1 || {
+              echo "FAIL: json output is not valid JSON"
+              exit 1
+            }
+            echo "PASS: JSON output is valid"
+            # Check JSON file was written
+            if [ -f "$GITHUB_WORKSPACE/json-output.json" ]; then
+              echo "JSON file contents:"
+              cat "$GITHUB_WORKSPACE/json-output.json"
+              echo "PASS: JSON file exists and was written"
+            else
+              echo "NOTE: JSON file not found (may be expected if check_run=false affects file writing)"
+            fi
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

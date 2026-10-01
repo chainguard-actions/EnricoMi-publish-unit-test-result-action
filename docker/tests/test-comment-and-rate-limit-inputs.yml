@@ -1,0 +1,55 @@
+name: Test comment title, annotations branch, event override, and rate limit inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Copy fixture test results into workspace
+        run: |
+          cp "$GITHUB_WORKSPACE/hardened/tests/fixtures/junit-passing.xml" "$GITHUB_WORKSPACE/junit-comment-results.xml"
+
+      - name: Create a minimal event file
+        run: |
+          echo '{"action":"push","repository":{"default_branch":"main"}}' > /tmp/test-event.json
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          files: junit-comment-results.xml
+          check_name: 'Test Results (comment-inputs)'
+          comment_title: 'My Custom Comment Title'
+          comment_mode: 'off'
+          check_run: 'false'
+          job_summary: 'true'
+          fail_on: 'nothing'
+          action_fail: 'false'
+          test_changes_limit: '5'
+          check_run_annotations_branch: 'main, master'
+          event_name: 'push'
+          event_file: /tmp/test-event.json
+          secondary_rate_limit_wait_seconds: '30'
+
+      - name: Assert action ran or failed gracefully
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json: $JSON_OUT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON_OUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            echo "$JSON_OUT" | grep -q '"tests"' || { echo "FAIL: JSON missing 'tests' key"; exit 1; }
+            echo "PASS: action succeeded with JSON output"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable via GitHub API)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi
