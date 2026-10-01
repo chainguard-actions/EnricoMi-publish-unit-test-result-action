@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestRun id="run1" name="Test Run" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <TestDefinitions>
+    <UnitTest name="TestOne" id="test1">
+      <TestMethod className="MyTests" name="TestOne" />
+    </UnitTest>
+    <UnitTest name="TestTwo" id="test2">
+      <TestMethod className="MyTests" name="TestTwo" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestLists>
+    <TestList name="All Loaded Results" id="list1" />
+  </TestLists>
+  <TestEntries>
+    <TestEntry testId="test1" testListId="list1" executionId="exec1" />
+    <TestEntry testId="test2" testListId="list1" executionId="exec2" />
+  </TestEntries>
+  <Results>
+    <UnitTestResult executionId="exec1" testId="test1" testName="TestOne" testListId="list1" outcome="Passed" duration="00:00:00.1000000" />
+    <UnitTestResult executionId="exec2" testId="test2" testName="TestTwo" testListId="list1" outcome="Passed" duration="00:00:00.1000000" />
+  </Results>
+  <ResultSummary outcome="Completed">
+    <Counters total="2" executed="2" passed="2" failed="0" error="0" />
+  </ResultSummary>
+</TestRun>

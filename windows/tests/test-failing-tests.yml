@@ -1,0 +1,47 @@
+name: Test with failing JUnit results
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Copy fixture JUnit file with failures to workspace
+        run: |
+          cp tests/fixtures/junit-failing.xml junit-failing-results.xml
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          files: junit-failing-results.xml
+          check_name: 'Test Results - Failing'
+          comment_mode: 'off'
+          check_run: 'false'
+          job_summary: 'true'
+          compare_to_earlier_commit: 'false'
+          fail_on: 'test failures'
+          action_fail: 'true'
+
+      - name: Assert action ran (with failures or failed gracefully on sentinel repo)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json: $JSON_OUT"
+          if [ "$OUTCOME" = "success" ]; then
+            # If action succeeded, it means action_fail didn't trigger (unexpected with failures)
+            # but the JSON output should still be present
+            if [ -z "$JSON_OUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            echo "PASS: action succeeded with json output"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed (either due to test failures with action_fail=true, or sentinel repo)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

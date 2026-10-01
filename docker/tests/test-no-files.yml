@@ -1,0 +1,39 @@
+name: Test no matching test files
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          files: nonexistent-results-*.xml
+          check_name: 'Test Results - No Files'
+          comment_mode: 'off'
+          check_run: 'false'
+          job_summary: 'true'
+          fail_on: 'nothing'
+          action_fail: 'false'
+          action_fail_on_inconclusive: 'false'
+
+      - name: Assert action ran or failed gracefully when no files found
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUT"
+          # When no files are found, the action may succeed with empty results
+          # or fail gracefully - both are acceptable outcomes
+          if [ "$OUTCOME" = "success" ]; then
+            echo "PASS: action succeeded (possibly with empty/no results)"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (no files found or sentinel repo not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

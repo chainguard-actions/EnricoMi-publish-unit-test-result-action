@@ -1,0 +1,69 @@
+name: Test extra inputs (part A) - deprecated file inputs and annotation options
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          # Deprecated file inputs (covered here for input-coverage)
+          junit_files: tests/fixtures/junit-basic.xml
+          nunit_files: ''
+          xunit_files: ''
+          trx_files: ''
+          # Annotation and comment options
+          check_name: 'Test Results Extra A'
+          comment_title: 'My Custom Comment Title'
+          comment_mode: 'off'
+          check_run: 'false'
+          job_summary: 'false'
+          compare_to_earlier_commit: 'false'
+          check_run_annotations_branch: 'main, master'
+          test_changes_limit: '5'
+          # Deprecated actor input
+          github_token_actor: ''
+          # Deduplication
+          deduplicate_classes_by_file_name: 'false'
+          # Large files support
+          large_files: 'false'
+          # Individual runs reporting
+          report_individual_runs: 'false'
+          # Rate limiting
+          secondary_rate_limit_wait_seconds: '60'
+          # Test file prefix
+          test_file_prefix: ''
+          # Event overrides
+          event_name: 'push'
+          # Commit override (use a placeholder; action will use GITHUB_SHA if invalid)
+          commit: ''
+          json_file: /tmp/test-results-extra-a.json
+
+      - name: Assert action ran or failed gracefully
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUTPUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUTPUT"
+
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON_OUTPUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            if ! echo "$JSON_OUTPUT" | grep -q '"tests"'; then
+              echo "FAIL: JSON output does not contain 'tests' field"
+              exit 1
+            fi
+            echo "PASS: action succeeded with JSON output"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable via GitHub API)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

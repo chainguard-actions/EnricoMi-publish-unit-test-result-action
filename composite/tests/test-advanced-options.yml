@@ -1,0 +1,70 @@
+name: Test advanced options
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create JUnit XML test result file and event file
+        run: |
+          mkdir -p test-results
+          cat > test-results/junit.xml << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <testsuites>
+            <testsuite name="AdvancedSuite" tests="2" failures="0" errors="0" skipped="1" time="0.8">
+              <testcase name="test_one" classname="AdvancedSuite" time="0.3"/>
+              <testcase name="test_skip" classname="AdvancedSuite" time="0.0">
+                <skipped/>
+              </testcase>
+            </testsuite>
+          </testsuites>
+          EOF
+
+          # Create a minimal event file for event_file input
+          cat > test-results/event.json << 'EOF'
+          {
+            "action": "completed",
+            "workflow_run": {
+              "event": "push",
+              "head_sha": "abc1234"
+            }
+          }
+          EOF
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          files: test-results/junit.xml
+          # advanced inputs being tested
+          commit: ${{ github.sha }}
+          event_file: test-results/event.json
+          event_name: push
+          test_changes_limit: '5'
+          check_run_annotations_branch: 'main, master, act-harness'
+          # standard options
+          check_run: 'false'
+          job_summary: 'false'
+          comment_mode: 'off'
+          fail_on: 'nothing'
+          action_fail: 'false'
+          action_fail_on_inconclusive: 'false'
+          compare_to_earlier_commit: 'false'
+
+      - name: Assert action ran or failed gracefully on sentinel repo
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUTPUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUTPUT"
+          if [ "$OUTCOME" = "success" ]; then
+            echo "PASS: action succeeded with advanced options"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

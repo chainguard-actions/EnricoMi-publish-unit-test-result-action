@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="FailureTests" tests="4" failures="2" errors="0" time="2.0">
+  <testsuite name="com.example.FailureTest" tests="4" failures="2" errors="0" skipped="0" time="2.0">
+    <testcase name="testPass1" classname="com.example.FailureTest" time="0.5"/>
+    <testcase name="testFail1" classname="com.example.FailureTest" time="0.5">
+      <failure message="AssertionError: expected true but was false" type="AssertionError">
+        AssertionError: expected true but was false
+          at com.example.FailureTest.testFail1(FailureTest.java:20)
+      </failure>
+    </testcase>
+    <testcase name="testPass2" classname="com.example.FailureTest" time="0.5"/>
+    <testcase name="testFail2" classname="com.example.FailureTest" time="0.5">
+      <failure message="AssertionError: expected 42 but was 0" type="AssertionError">
+        AssertionError: expected 42 but was 0
+          at com.example.FailureTest.testFail2(FailureTest.java:35)
+      </failure>
+    </testcase>
+  </testsuite>
+</testsuites>

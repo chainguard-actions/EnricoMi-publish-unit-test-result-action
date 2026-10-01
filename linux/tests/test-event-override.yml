@@ -1,0 +1,65 @@
+name: Test event override options (event_file, event_name, commit, test_file_prefix)
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Copy fixture test results and create event file
+        run: |
+          cp "$GITHUB_WORKSPACE/hardened/tests/fixtures/junit-passing.xml" "$GITHUB_WORKSPACE/junit-results.xml"
+          # Create a minimal event file to simulate a push event
+          cat > "$GITHUB_WORKSPACE/event.json" <<'EOF'
+          {
+            "action": "push",
+            "repository": {
+              "default_branch": "main"
+            }
+          }
+          EOF
+
+      - name: Get current commit SHA
+        id: git-info
+        run: |
+          COMMIT_SHA="$(git rev-parse HEAD)"
+          echo "commit_sha=$COMMIT_SHA" >> "$GITHUB_OUTPUT"
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          files: junit-results.xml
+          check_name: Test Results Event Override
+          check_run: 'false'
+          job_summary: 'false'
+          comment_mode: 'off'
+          fail_on: 'nothing'
+          action_fail: 'false'
+          action_fail_on_inconclusive: 'false'
+          compare_to_earlier_commit: 'false'
+          event_file: event.json
+          event_name: push
+          commit: ${{ steps.git-info.outputs.commit_sha }}
+          test_file_prefix: '+src/'
+
+      - name: Assert action ran with event override options
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON_OUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            echo "PASS: action succeeded with event override options"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

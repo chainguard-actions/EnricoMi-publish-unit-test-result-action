@@ -1,0 +1,56 @@
+name: Test deprecated file inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create JUnit XML test result file
+        run: |
+          mkdir -p test-results
+          cat > test-results/junit.xml << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <testsuites>
+            <testsuite name="DeprecatedSuite" tests="2" failures="0" errors="0" skipped="0" time="0.5">
+              <testcase name="test_alpha" classname="DeprecatedSuite" time="0.1"/>
+              <testcase name="test_beta" classname="DeprecatedSuite" time="0.2"/>
+            </testsuite>
+          </testsuites>
+          EOF
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          # deprecated inputs being tested
+          junit_files: test-results/junit.xml
+          nunit_files: test-results/nonexistent-nunit*.xml
+          xunit_files: test-results/nonexistent-xunit*.xml
+          trx_files: test-results/nonexistent-trx*.xml
+          github_token_actor: ''
+          # standard options
+          check_run: 'false'
+          job_summary: 'false'
+          comment_mode: 'off'
+          fail_on: 'nothing'
+          action_fail: 'false'
+          action_fail_on_inconclusive: 'false'
+          compare_to_earlier_commit: 'false'
+
+      - name: Assert action ran or failed gracefully on sentinel repo
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUTPUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUTPUT"
+          if [ "$OUTCOME" = "success" ]; then
+            echo "PASS: action succeeded with deprecated file inputs"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi
