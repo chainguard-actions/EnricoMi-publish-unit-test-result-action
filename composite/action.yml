@@ -204,7 +204,7 @@ runs:
       shell: bash
 
     - name: Restore PIP packages cache
-      uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
+      uses: chainguard-actions/actions-cache/restore@bf3571dc23f0f3563eb28d6e1ac2a52ee32fe125  # v5.0.3
       id: cache
       continue-on-error: true
       with:
@@ -321,7 +321,7 @@ runs:
       shell: bash
 
     - name: Save PIP packages cache
-      uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
+      uses: chainguard-actions/actions-cache/save@bf3571dc23f0f3563eb28d6e1ac2a52ee32fe125  # v5.0.3
       if: ( success() || failure() ) && ! steps.cache.outputs.cache-hit
       continue-on-error: true
       with:
