@@ -10,41 +10,44 @@
 
 **Harden Agent Version:** `2`
 
-Action **EnricoMi--publish-unit-test-result-action/v2.24.0** was hardened automatically. 3 finding(s) were identified and resolved across 2 iteration(s).
+Action **EnricoMi--publish-unit-test-result-action/v2.24.0** was hardened automatically. 4 finding(s) were identified and resolved across 1 iteration(s).
 
 ## Findings Fixed
 
 ### script-injection (severity: high)
 
-Sub-rule (a): `${{ github.action_path }}` is interpolated directly inside `run:` shell command strings in two steps. This causes the GitHub Actions expression to be substituted into the shell script before execution, which is a script injection risk. Offending lines:
-- `pip install --force --no-cache-dir -r ${{ github.action_path }}/requirements.txt`
-- `python ${{ github.action_path }}/script.py "$SCRIPT_URL" "$SCRIPT_QUERY"`
-These should use the `$GITHUB_ACTION_PATH` environment variable instead.
+Rule (a): ${{ github.action_path }} is interpolated directly inside run: shell command strings. Although github.action_path is not attacker-controlled, any ${{ ... }} expression directly inside a run: block is a script-injection finding. Affected lines: (1) `pip install --force --no-cache-dir -r ${{ github.action_path }}/requirements.txt` and (2) `python ${{ github.action_path }}/script.py "$SCRIPT_URL" "$SCRIPT_QUERY"`.
 
 Locations:
 
-- `misc/action/find-workflows/action.yml:25`
-- `misc/action/find-workflows/action.yml:33`
+- `misc/action/find-workflows/action.yml:26`
+- `misc/action/find-workflows/action.yml:35`
 
 ### script-injection (severity: high)
 
-Sub-rule (a): `${{ github.action_path }}` is interpolated directly inside `run:` shell command strings in two steps. This causes the GitHub Actions expression to be substituted into the shell script before execution, which is a script injection risk. Offending lines:
-- `pip install --force --no-cache-dir -r ${{ github.action_path }}/requirements.txt`
-- `python ${{ github.action_path }}/script.py "$SCRIPT_URL" "$SCRIPT_REPO" "$SCRIPT_PACKAGE"`
-These should use the `$GITHUB_ACTION_PATH` environment variable instead.
+Rule (a): ${{ github.action_path }} is interpolated directly inside run: shell command strings. Affected lines: (1) `pip install --force --no-cache-dir -r ${{ github.action_path }}/requirements.txt` and (2) `python ${{ github.action_path }}/script.py "$SCRIPT_URL" "$SCRIPT_REPO" "$SCRIPT_PACKAGE"`.
 
 Locations:
 
 - `misc/action/package-downloads/action.yml:33`
-- `misc/action/package-downloads/action.yml:41`
+- `misc/action/package-downloads/action.yml:43`
 
-### unpinned-uses (severity: high)
+### script-injection (severity: high)
 
-The root `action.yml` uses a Docker image referenced by a mutable tag (`v2.24.0`) rather than an immutable SHA digest. This means the image could be replaced with a different version without changing the action definition, creating a supply-chain risk. The `runs.image` field is: `docker://ghcr.io/enricomi/publish-unit-test-result-action:v2.24.0`. It should be pinned to a SHA digest, e.g. `ghcr.io/enricomi/publish-unit-test-result-action@sha256:<64-hex-char-digest>`.
+Rule (b): Unquoted shell variable expansions of input-derived env vars in the docker run step. (1) `"$DOCKER_REGISTRY/$DOCKER_IMAGE:$DOCKER_TAG"` — DOCKER_REGISTRY, DOCKER_IMAGE, and DOCKER_TAG are set from inputs.docker_registry, inputs.docker_image, and inputs.docker_tag respectively, and are used unquoted (no surrounding double-quotes) as the final docker image argument, allowing shell metacharacter injection. (2) `${platform:+--platform $platform}` — the inner `$platform` (sourced from inputs.docker_platform via DOCKER_PLATFORM) is unquoted inside the expansion, allowing word-splitting and glob expansion.
 
 Locations:
 
-- `action.yml:163`
+- `docker/action.yml:196`
+- `docker/action.yml:138`
+
+### unpinned-uses (severity: high)
+
+The root action.yml uses a Docker image referenced by a mutable version tag rather than an immutable SHA digest: `image: 'docker://ghcr.io/enricomi/publish-unit-test-result-action:v2.24.0'`. A tag can be overwritten to point to a different image, enabling supply-chain attacks. It should be pinned to a SHA digest, e.g. `image: 'docker://ghcr.io/enricomi/publish-unit-test-result-action@sha256:<64-hex-char-digest>'`.
+
+Locations:
+
+- `action.yml:156`
 
 ## Iteration Notes
 
@@ -54,13 +57,5 @@ Locations:
 
 **Notes:**
 
-Three fixes applied: (1) Pinned the Docker image in action.yml from mutable tag `v2.24.0` to immutable digest `sha256:4b0f12ca591495ab7c177753bc4142f1b679f7f95df9595f19c31a986021001d`, preserving the `docker://` scheme and tag. (2) In misc/action/find-workflows/action.yml, replaced both `${{ github.action_path }}` expressions in `run:` steps with the `$GITHUB_ACTION_PATH` environment variable. (3) In misc/action/package-downloads/action.yml, replaced both `${{ github.action_path }}` expressions in `run:` steps with the `$GITHUB_ACTION_PATH` environment variable.
-
-### Iteration 2
-
-**Fixes applied:** script-injection
-
-**Notes:**
-
-Fixed script injection in hardened/action/docker/action.yml at the `docker run` command. Changed `${platform:+--platform $platform}` to `${platform:+--platform "$platform"}` to properly quote the inner expansion of `$platform`, preventing word-splitting and glob expansion on the attacker-controlled `inputs.docker_platform` value.
+Fixed 4 findings across 4 files: (1) Pinned Docker image in action.yml to immutable SHA digest sha256:4b0f12ca591495ab7c177753bc4142f1b679f7f95df9595f19c31a986021001d while preserving docker:// scheme and tag. (2) Fixed script injection in misc/action/find-workflows/action.yml by moving ${{ github.action_path }} into env: blocks as ACTION_PATH for both the pip install and python run steps. (3) Fixed script injection in misc/action/package-downloads/action.yml with the same pattern. (4) Fixed script injection in docker/action.yml by replacing the unsafe ${platform:+--platform $platform} expansion (unquoted inner $platform) with a bash array platform_args=() that properly quotes the value when non-empty.
 

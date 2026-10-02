@@ -1,4 +1,4 @@
-name: Test file path and annotation options
+name: Test large files and event override options
 on:
   workflow_dispatch:
 jobs:
@@ -7,17 +7,27 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Create JUnit XML test result file with file references
+      - name: Create JUnit XML test result file and event file
         run: |
           mkdir -p "$GITHUB_WORKSPACE/test-results"
           cat > "$GITHUB_WORKSPACE/test-results/junit.xml" << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <testsuites name="Suite" tests="2" failures="0" errors="0" time="1.0">
-            <testsuite name="FileTests" tests="2" failures="0" errors="0" time="1.0">
-              <testcase name="test_one" classname="FileTests" file="src/test_one.py" time="0.5"/>
-              <testcase name="test_two" classname="FileTests" file="src/test_two.py" time="0.5"/>
+            <testsuite name="LargeFileTests" tests="2" failures="0" errors="0" time="1.0">
+              <testcase name="test_one" classname="LargeFileTests" time="0.5"/>
+              <testcase name="test_two" classname="LargeFileTests" time="0.5"/>
             </testsuite>
           </testsuites>
+          EOF
+          # Create a minimal event file to simulate an alternative event source
+          cat > "$GITHUB_WORKSPACE/test-results/event.json" << 'EOF'
+          {
+            "action": "completed",
+            "workflow_run": {
+              "event": "push",
+              "head_sha": "abc1234"
+            }
+          }
           EOF
 
       - name: Set up git origin reachable inside Docker container
@@ -35,15 +45,16 @@ jobs:
         continue-on-error: true
         with:
           files: test-results/junit.xml
-          check_name: 'Test Results File Options'
+          check_name: 'Test Results Large Files'
           comment_mode: 'off'
           check_run: 'false'
           job_summary: 'false'
           fail_on: 'nothing'
           action_fail: 'false'
-          test_file_prefix: '+/'
-          deduplicate_classes_by_file_name: 'false'
-          check_run_annotations_branch: 'main, master, act-harness'
+          large_files: 'false'
+          secondary_rate_limit_wait_seconds: '30'
+          event_file: test-results/event.json
+          event_name: 'push'
 
       - name: Assert action ran or failed gracefully on sentinel repo
         env:

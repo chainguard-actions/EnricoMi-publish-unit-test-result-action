@@ -1,4 +1,4 @@
-name: Test deprecated file inputs
+name: Test deprecated file-type inputs
 on:
   workflow_dispatch:
 jobs:
@@ -34,12 +34,12 @@ jobs:
         uses: .
         continue-on-error: true
         with:
+          github_token_actor: ''
           junit_files: test-results/junit.xml
           nunit_files: ''
           xunit_files: ''
           trx_files: ''
-          github_token_actor: ''
-          check_name: 'Test Results Deprecated Inputs'
+          check_name: 'Test Results Deprecated'
           comment_mode: 'off'
           check_run: 'false'
           job_summary: 'false'

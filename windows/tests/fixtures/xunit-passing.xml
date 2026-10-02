@@ -1,9 +1,9 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <assemblies>
-  <assembly name="TestAssembly" run-date="2024-01-01" run-time="00:00:00" total="2" passed="2" failed="0" skipped="0" errors="0" time="0.5">
-    <collection name="Test Collection" total="2" passed="2" failed="0" skipped="0" time="0.5">
-      <test name="MyTests.TestOne" type="MyTests" method="TestOne" result="Pass" time="0.1" />
-      <test name="MyTests.TestTwo" type="MyTests" method="TestTwo" result="Pass" time="0.1" />
+  <assembly name="XUnitTests.dll" run-date="2024-01-01" run-time="00:00:00" configFile="" time="0.500" total="2" passed="2" failed="0" skipped="0" errors="0">
+    <collection name="Test collection for XUnitTests.PassingTests" time="0.500" total="2" passed="2" failed="0" skipped="0">
+      <test name="XUnitTests.PassingTests.TestOne" type="XUnitTests.PassingTests" method="TestOne" time="0.200" result="Pass"/>
+      <test name="XUnitTests.PassingTests.TestTwo" type="XUnitTests.PassingTests" method="TestTwo" time="0.300" result="Pass"/>
     </collection>
   </assembly>
 </assemblies>

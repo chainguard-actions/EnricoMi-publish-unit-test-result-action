@@ -1,4 +1,4 @@
-name: Test advanced options
+name: Test advanced annotation and reporting options
 on:
   workflow_dispatch:
 jobs:
@@ -12,14 +12,18 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/test-results"
           cat > "$GITHUB_WORKSPACE/test-results/junit.xml" << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
-          <testsuites name="Suite" tests="3" failures="0" errors="0" time="1.5">
-            <testsuite name="AdvancedTests" tests="3" failures="0" errors="0" time="1.5">
+          <testsuites name="Suite" tests="3" failures="0" errors="0" time="2.0">
+            <testsuite name="AdvancedTests" tests="3" failures="0" errors="0" time="2.0">
               <testcase name="test_alpha" classname="AdvancedTests" time="0.5"/>
               <testcase name="test_beta" classname="AdvancedTests" time="0.5"/>
-              <testcase name="test_gamma" classname="AdvancedTests" time="0.5"/>
+              <testcase name="test_gamma" classname="AdvancedTests" time="1.0"/>
             </testsuite>
           </testsuites>
           EOF
+
+      - name: Get current commit SHA
+        id: get_sha
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Set up git origin reachable inside Docker container
         run: |
@@ -31,27 +35,24 @@ jobs:
           git remote set-url origin "$GITHUB_WORKSPACE/.git-remote" 2>/dev/null || \
             git remote add origin "$GITHUB_WORKSPACE/.git-remote"
 
-      - name: Get current commit SHA
-        id: get-sha
-        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
       - id: action
         uses: .
         continue-on-error: true
         with:
           files: test-results/junit.xml
-          commit: ${{ steps.get-sha.outputs.sha }}
-          check_name: 'Test Results Advanced Options'
+          check_name: 'Test Results Advanced'
           comment_title: 'My Custom Comment Title'
           comment_mode: 'off'
           check_run: 'false'
           job_summary: 'false'
           fail_on: 'nothing'
           action_fail: 'false'
-          large_files: 'false'
+          commit: ${{ steps.get_sha.outputs.sha }}
+          deduplicate_classes_by_file_name: 'false'
           report_individual_runs: 'true'
           test_changes_limit: '5'
-          secondary_rate_limit_wait_seconds: '60'
+          test_file_prefix: '+test-results/'
+          check_run_annotations_branch: 'main, master, act-harness'
 
       - name: Assert action ran or failed gracefully on sentinel repo
         env:

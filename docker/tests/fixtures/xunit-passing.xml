@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<assemblies>
-  <assembly name="TestAssembly" run-date="2024-01-01" run-time="00:00:00" total="2" passed="2" failed="0" skipped="0" errors="0" time="0.5">
-    <collection name="Test Collection" total="2" passed="2" failed="0" skipped="0" time="0.5">
-      <test name="MyTests.TestOne" method="TestOne" type="MyTests" result="Pass" time="0.1" />
-      <test name="MyTests.TestTwo" method="TestTwo" type="MyTests" result="Pass" time="0.1" />
-    </collection>
-  </assembly>
-</assemblies>

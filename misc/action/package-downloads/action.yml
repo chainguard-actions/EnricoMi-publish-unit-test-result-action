@@ -29,10 +29,12 @@ runs:
         python-version: '3.10'
 
     - name: Install Python dependencies
+      env:
+        ACTION_PATH: ${{ github.action_path }}
       shell: bash
       run: |
         python -m pip install --upgrade --force --no-cache-dir pip
-        pip install --force --no-cache-dir -r "$GITHUB_ACTION_PATH/requirements.txt"
+        pip install --force --no-cache-dir -r "$ACTION_PATH/requirements.txt"
         pip freeze | sort
 
     - name: Get download info
@@ -41,9 +43,10 @@ runs:
         SCRIPT_URL: ${{ inputs.url }}
         SCRIPT_REPO: ${{ inputs.repo }}
         SCRIPT_PACKAGE: ${{ inputs.package }}
+        ACTION_PATH: ${{ github.action_path }}
       shell: bash
       run: |
-        python "$GITHUB_ACTION_PATH/script.py" "$SCRIPT_URL" "$SCRIPT_REPO" "$SCRIPT_PACKAGE"
+        python "$ACTION_PATH/script.py" "$SCRIPT_URL" "$SCRIPT_REPO" "$SCRIPT_PACKAGE"
 
 branding:
   icon: 'download-cloud'

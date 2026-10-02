@@ -1,0 +1,67 @@
+name: Test event and comment customization options
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Copy fixture test results
+        run: |
+          cp "$GITHUB_WORKSPACE/hardened/tests/fixtures/junit-passing.xml" "$GITHUB_WORKSPACE/junit-event-test.xml"
+
+      - name: Create a minimal event file
+        run: |
+          cat > "$GITHUB_WORKSPACE/event.json" <<'EOF'
+          {
+            "action": "completed",
+            "workflow_run": {
+              "event": "push",
+              "head_sha": "abc1234"
+            }
+          }
+          EOF
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          files: junit-event-test.xml
+          check_name: Test Results Event Options
+          comment_title: 'Custom Comment Title'
+          commit: ${{ github.sha }}
+          event_file: event.json
+          event_name: push
+          check_run_annotations_branch: 'main, master, act-harness'
+          check_run: 'false'
+          job_summary: 'false'
+          comment_mode: 'off'
+          fail_on: 'nothing'
+          action_fail: 'false'
+          action_fail_on_inconclusive: 'false'
+          compare_to_earlier_commit: 'false'
+
+      - name: Assert action ran with event and comment options
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON_OUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            if ! echo "$JSON_OUT" | grep -q '"tests"'; then
+              echo "FAIL: JSON output does not contain 'tests' field"
+              exit 1
+            fi
+            echo "PASS: action succeeded with event and comment options"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

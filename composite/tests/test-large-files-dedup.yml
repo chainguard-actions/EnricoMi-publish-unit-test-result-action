@@ -1,4 +1,4 @@
-name: Test large files and deduplication options
+name: Test large files, deduplication, file prefix, and rate limit options
 on:
   workflow_dispatch:
 jobs:
@@ -7,15 +7,17 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Create JUnit XML test result file with duplicate class names
+      - name: Create JUnit XML test result file
         run: |
           mkdir -p test-results
+
           cat > test-results/junit.xml << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <testsuites>
-            <testsuite name="DupSuite" tests="2" failures="0" errors="0" skipped="0" time="0.6">
-              <testcase name="test_one" classname="DupClass" file="src/test_one.py" time="0.2"/>
-              <testcase name="test_two" classname="DupClass" file="src/test_two.py" time="0.3"/>
+            <testsuite name="LargeSuite" tests="3" failures="0" errors="0" skipped="0" time="1.5">
+              <testcase name="test_one" classname="com.example.LargeSuite" time="0.5" file="/opt/actions-runner/src/test_one.py"/>
+              <testcase name="test_two" classname="com.example.LargeSuite" time="0.5" file="/opt/actions-runner/src/test_two.py"/>
+              <testcase name="test_three" classname="com.example.OtherSuite" time="0.5" file="/opt/actions-runner/src/test_three.py"/>
             </testsuite>
           </testsuites>
           EOF
@@ -25,18 +27,15 @@ jobs:
         continue-on-error: true
         with:
           files: test-results/junit.xml
-          # inputs being tested
-          large_files: 'false'
+          large_files: 'true'
           deduplicate_classes_by_file_name: 'true'
-          test_file_prefix: '+src/'
+          test_file_prefix: '-/opt/actions-runner'
           secondary_rate_limit_wait_seconds: '30'
-          # standard options
           check_run: 'false'
           job_summary: 'false'
           comment_mode: 'off'
           fail_on: 'nothing'
           action_fail: 'false'
-          action_fail_on_inconclusive: 'false'
           compare_to_earlier_commit: 'false'
 
       - name: Assert action ran or failed gracefully on sentinel repo
@@ -47,7 +46,11 @@ jobs:
           echo "outcome: $OUTCOME"
           echo "json output: $JSON_OUTPUT"
           if [ "$OUTCOME" = "success" ]; then
-            echo "PASS: action succeeded with large_files and dedup options"
+            if [ -z "$JSON_OUTPUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            echo "PASS: action succeeded with JSON output"
           elif [ "$OUTCOME" = "failure" ]; then
             echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
           else

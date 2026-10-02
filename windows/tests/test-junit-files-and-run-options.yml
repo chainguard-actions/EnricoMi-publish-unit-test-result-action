@@ -1,4 +1,4 @@
-name: Test event and run reporting options
+name: Test junit_files deprecated input and run reporting options
 on:
   workflow_dispatch:
 jobs:
@@ -9,23 +9,23 @@ jobs:
 
       - name: Copy fixture JUnit file to workspace
         run: |
-          cp tests/fixtures/junit-passing.xml junit-results-event.xml
+          cp tests/fixtures/junit-passing.xml junit-results.xml
 
       - id: action
         uses: .
         continue-on-error: true
         with:
-          files: junit-results-event.xml
-          check_name: 'Test Results - Event Options'
+          junit_files: junit-results.xml
+          check_name: 'Test Results - JUnit Files'
           comment_mode: 'off'
           check_run: 'false'
-          job_summary: 'false'
+          job_summary: 'true'
           compare_to_earlier_commit: 'false'
           fail_on: 'nothing'
           action_fail: 'false'
-          event_name: 'push'
           report_individual_runs: 'true'
           deduplicate_classes_by_file_name: 'false'
+          large_files: 'false'
           test_file_prefix: '+src/'
 
       - name: Assert action ran or failed gracefully on sentinel repo

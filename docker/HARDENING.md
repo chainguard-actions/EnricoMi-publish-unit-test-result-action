@@ -20,5 +20,5 @@ Action **EnricoMi--publish-unit-test-result-action--docker/v2.24.0** was hardene
 
 **Notes:**
 
-Fixed script injection vulnerability in action.yml at line 177. Changed `${platform:+--platform $platform}` to `${platform:+--platform "$platform"}` to properly quote the `$platform` variable inside the parameter expansion. This prevents an attacker-controlled `docker_platform` input value containing shell metacharacters (`;`, `|`, `$(...)`, etc.) from being interpreted by the shell.
+Fixed unquoted shell variable expansion in action.yml line 178. Changed `${platform:+--platform $platform}` to `${platform:+--platform "$platform"}` so that the caller-controlled `docker_platform` input value is always treated as a single quoted argument to docker, preventing shell metacharacter injection.
 

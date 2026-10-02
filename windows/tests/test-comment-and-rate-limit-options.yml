@@ -1,4 +1,4 @@
-name: Test event_file input
+name: Test comment title, commit, rate limit, and annotation branch options
 on:
   workflow_dispatch:
 jobs:
@@ -7,34 +7,28 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Copy fixture JUnit file and create event file
+      - name: Copy fixture JUnit file to workspace
         run: |
-          cp tests/fixtures/junit-passing.xml junit-results-event-file.xml
-          # Create a minimal push event file
-          cat > push-event.json << 'EOF'
-          {
-            "action": "push",
-            "ref": "refs/heads/main",
-            "repository": {
-              "default_branch": "main"
-            }
-          }
-          EOF
+          cp tests/fixtures/junit-passing.xml junit-results.xml
 
       - id: action
         uses: .
         continue-on-error: true
         with:
-          files: junit-results-event-file.xml
-          check_name: 'Test Results - Event File'
+          files: junit-results.xml
+          check_name: 'Test Results - Comment Options'
+          comment_title: 'My Custom Comment Title'
           comment_mode: 'off'
           check_run: 'false'
-          job_summary: 'false'
+          job_summary: 'true'
           compare_to_earlier_commit: 'false'
           fail_on: 'nothing'
           action_fail: 'false'
-          event_file: 'push-event.json'
-          event_name: 'push'
+          commit: ${{ github.sha }}
+          check_run_annotations_branch: 'main, master, act-harness'
+          test_changes_limit: '5'
+          secondary_rate_limit_wait_seconds: '30'
+          github_token_actor: ''
 
       - name: Assert action ran or failed gracefully on sentinel repo
         env:

@@ -1,25 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <TestRun id="run1" name="Test Run" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Results>
+    <UnitTestResult executionId="exec1" testId="test1" testName="TestOne" computerName="localhost" duration="00:00:00.200" startTime="2024-01-01T00:00:00" endTime="2024-01-01T00:00:00.200" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d"/>
+    <UnitTestResult executionId="exec2" testId="test2" testName="TestTwo" computerName="localhost" duration="00:00:00.300" startTime="2024-01-01T00:00:00.200" endTime="2024-01-01T00:00:00.500" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d"/>
+  </Results>
   <TestDefinitions>
     <UnitTest name="TestOne" id="test1">
-      <TestMethod className="MyTests" name="TestOne" />
+      <Execution id="exec1"/>
+      <TestMethod className="TrxTests.PassingTests" name="TestOne"/>
     </UnitTest>
     <UnitTest name="TestTwo" id="test2">
-      <TestMethod className="MyTests" name="TestTwo" />
+      <Execution id="exec2"/>
+      <TestMethod className="TrxTests.PassingTests" name="TestTwo"/>
     </UnitTest>
   </TestDefinitions>
   <TestLists>
-    <TestList name="All Loaded Results" id="list1" />
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d"/>
   </TestLists>
-  <TestEntries>
-    <TestEntry testId="test1" testListId="list1" executionId="exec1" />
-    <TestEntry testId="test2" testListId="list1" executionId="exec2" />
-  </TestEntries>
-  <Results>
-    <UnitTestResult executionId="exec1" testId="test1" testName="TestOne" testListId="list1" outcome="Passed" duration="00:00:00.1000000" />
-    <UnitTestResult executionId="exec2" testId="test2" testName="TestTwo" testListId="list1" outcome="Passed" duration="00:00:00.1000000" />
-  </Results>
   <ResultSummary outcome="Completed">
-    <Counters total="2" executed="2" passed="2" failed="0" error="0" />
+    <Counters total="2" executed="2" passed="2" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0"/>
   </ResultSummary>
 </TestRun>
