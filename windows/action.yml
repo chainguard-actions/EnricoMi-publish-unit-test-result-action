@@ -200,7 +200,7 @@ runs:
       shell: pwsh
 
     - name: Restore PIP packages cache
-      uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
+      uses: chainguard-actions/actions-cache/restore@b5b76c7016521bd34554159c882773b3df2e994a  # v5.0.5
       id: cache
       continue-on-error: true
       with:
@@ -310,7 +310,7 @@ runs:
       shell: pwsh
 
     - name: Save PIP packages cache
-      uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
+      uses: chainguard-actions/actions-cache/save@b5b76c7016521bd34554159c882773b3df2e994a  # v5.0.5
       if: ( success() || failure() ) && ! steps.cache.outputs.cache-hit
       continue-on-error: true
       with:
