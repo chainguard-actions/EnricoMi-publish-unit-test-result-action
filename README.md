@@ -10,6 +10,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 |---------|-----|-----------------|
 | v2.23.0 | [`v2.23.0`](https://github.com/chainguard-actions/EnricoMi-publish-unit-test-result-action/tree/v2.23.0) | [`c950f6f`](https://github.com/EnricoMi/publish-unit-test-result-action/commit/c950f6fb443cb5af20a377fd0dfaa78838901040) |
 | v2.24.0 | [`v2.24.0`](https://github.com/chainguard-actions/EnricoMi-publish-unit-test-result-action/tree/v2.24.0) | [`d0a4676`](https://github.com/EnricoMi/publish-unit-test-result-action/commit/d0a4676d0e0b938bc201470d88276b7c74c712b3) |
+| v2.25.0 | [`v2.25.0`](https://github.com/chainguard-actions/EnricoMi-publish-unit-test-result-action/tree/v2.25.0) | [`7622c5b`](https://github.com/EnricoMi/publish-unit-test-result-action/commit/7622c5bf3d112a72ab4fa3951c2aa5723d8ab92d) |
 
 ## Privacy
 
