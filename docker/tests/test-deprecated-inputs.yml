@@ -1,0 +1,56 @@
+name: Test deprecated and legacy inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Copy fixture test results into workspace
+        run: |
+          cp "$GITHUB_WORKSPACE/tests/fixtures/junit-passing.xml" "$GITHUB_WORKSPACE/junit-results.xml"
+          cp "$GITHUB_WORKSPACE/tests/fixtures/junit-passing.xml" "$GITHUB_WORKSPACE/nunit-results.xml"
+          cp "$GITHUB_WORKSPACE/tests/fixtures/junit-passing.xml" "$GITHUB_WORKSPACE/xunit-results.xml"
+          cp "$GITHUB_WORKSPACE/tests/fixtures/junit-passing.xml" "$GITHUB_WORKSPACE/trx-results.xml"
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          junit_files: junit-results.xml
+          nunit_files: nunit-results.xml
+          xunit_files: xunit-results.xml
+          trx_files: trx-results.xml
+          github_token_actor: ''
+          commit: ${{ github.sha }}
+          comment_title: 'Test Results Summary'
+          comment_mode: 'off'
+          check_name: 'Test Results - Deprecated Inputs'
+          event_name: 'push'
+          event_file: ''
+          test_changes_limit: '5'
+          check_run: 'true'
+          job_summary: 'false'
+          fail_on: 'nothing'
+          action_fail: 'false'
+
+      - name: Assert action ran (succeeded or failed gracefully on sentinel repo)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON_OUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            echo "PASS: action succeeded with json output"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

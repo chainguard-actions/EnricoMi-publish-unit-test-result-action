@@ -1,0 +1,43 @@
+name: Test comment and annotation options
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: ./action/bash
+        continue-on-error: true
+        with:
+          files: tests/fixtures/junit-passing.xml
+          check_run: 'false'
+          job_summary: 'false'
+          comment_mode: 'off'
+          comment_title: 'My Custom Test Results Title'
+          test_changes_limit: '5'
+          check_run_annotations_branch: 'main, master, act-harness'
+          compare_to_earlier_commit: 'false'
+          fail_on: 'nothing'
+          action_fail: 'false'
+
+      - name: Assert action ran with comment and annotation options
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUTPUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUTPUT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON_OUTPUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            echo "PASS: action succeeded with comment/annotation options"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

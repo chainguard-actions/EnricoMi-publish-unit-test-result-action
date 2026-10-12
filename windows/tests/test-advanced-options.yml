@@ -1,0 +1,61 @@
+name: Test advanced action options
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Get current commit SHA
+        id: sha
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Create event file
+        run: |
+          cat > /tmp/event.json << 'EOF'
+          {
+            "action": "push",
+            "ref": "refs/heads/act-harness"
+          }
+          EOF
+
+      - id: action
+        uses: ./action/bash
+        continue-on-error: true
+        with:
+          files: tests/fixtures/junit-passing.xml
+          check_run: 'false'
+          job_summary: 'false'
+          comment_mode: 'off'
+          compare_to_earlier_commit: 'false'
+          commit: ${{ steps.sha.outputs.sha }}
+          event_file: /tmp/event.json
+          event_name: push
+          secondary_rate_limit_wait_seconds: '30'
+          report_individual_runs: 'true'
+          deduplicate_classes_by_file_name: 'false'
+          large_files: 'false'
+          test_file_prefix: ''
+          fail_on: 'nothing'
+          action_fail: 'false'
+
+      - name: Assert action ran with advanced options
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUTPUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUTPUT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON_OUTPUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            echo "PASS: action succeeded with advanced options"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

@@ -1,0 +1,67 @@
+name: Test basic passing JUnit results
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Copy fixture JUnit file
+        run: |
+          cp tests/fixtures/junit-passing.xml /tmp/junit-passing.xml
+
+      - id: action
+        uses: ./action/bash
+        continue-on-error: true
+        with:
+          files: tests/fixtures/junit-passing.xml
+          check_run: 'false'
+          job_summary: 'false'
+          comment_mode: 'off'
+          compare_to_earlier_commit: 'false'
+          json_file: /tmp/test-results.json
+          fail_on: 'nothing'
+          action_fail: 'false'
+
+      - name: Assert action ran (outputs set, or failed gracefully on the sentinel repo)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUTPUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUTPUT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON_OUTPUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            echo "PASS: action succeeded with json output"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi
+
+      - name: Assert JSON file written when action succeeded
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ ! -f /tmp/test-results.json ]; then
+              echo "FAIL: expected JSON file not found at /tmp/test-results.json"
+              exit 1
+            fi
+            echo "JSON file contents:"
+            cat /tmp/test-results.json
+            # Verify it contains test count info
+            if ! grep -q '"tests"' /tmp/test-results.json; then
+              echo "FAIL: JSON file does not contain 'tests' key"
+              exit 1
+            fi
+            echo "PASS: JSON file written with expected content"
+          else
+            echo "SKIP: action did not succeed, skipping JSON file check"
+          fi

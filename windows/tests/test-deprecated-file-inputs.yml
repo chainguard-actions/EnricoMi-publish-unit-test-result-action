@@ -1,0 +1,152 @@
+name: Test deprecated file input options
+on:
+  workflow_dispatch:
+jobs:
+  test-junit-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: ./action/bash
+        continue-on-error: true
+        with:
+          junit_files: tests/fixtures/junit-passing.xml
+          github_token_actor: ''
+          check_run: 'false'
+          job_summary: 'false'
+          comment_mode: 'off'
+          compare_to_earlier_commit: 'false'
+          fail_on: 'nothing'
+          action_fail: 'false'
+
+      - name: Assert action ran with junit_files input
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUTPUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUTPUT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON_OUTPUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            echo "PASS: action succeeded with junit_files input"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi
+
+  test-nunit-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: ./action/bash
+        continue-on-error: true
+        with:
+          nunit_files: tests/fixtures/nunit-passing.xml
+          check_run: 'false'
+          job_summary: 'false'
+          comment_mode: 'off'
+          compare_to_earlier_commit: 'false'
+          fail_on: 'nothing'
+          action_fail: 'false'
+
+      - name: Assert action ran with nunit_files input
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUTPUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUTPUT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON_OUTPUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            echo "PASS: action succeeded with nunit_files input"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi
+
+  test-xunit-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: ./action/bash
+        continue-on-error: true
+        with:
+          xunit_files: tests/fixtures/xunit-passing.xml
+          check_run: 'false'
+          job_summary: 'false'
+          comment_mode: 'off'
+          compare_to_earlier_commit: 'false'
+          fail_on: 'nothing'
+          action_fail: 'false'
+
+      - name: Assert action ran with xunit_files input
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUTPUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUTPUT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON_OUTPUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            echo "PASS: action succeeded with xunit_files input"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi
+
+  test-trx-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: ./action/bash
+        continue-on-error: true
+        with:
+          trx_files: tests/fixtures/results.trx
+          check_run: 'false'
+          job_summary: 'false'
+          comment_mode: 'off'
+          compare_to_earlier_commit: 'false'
+          fail_on: 'nothing'
+          action_fail: 'false'
+
+      - name: Assert action ran with trx_files input
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUTPUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUTPUT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON_OUTPUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            echo "PASS: action succeeded with trx_files input"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

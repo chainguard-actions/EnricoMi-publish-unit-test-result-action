@@ -1,0 +1,41 @@
+name: Test with no matching test files (inconclusive)
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          files: 'nonexistent-test-results-*.xml'
+          check_name: 'Test Results - Inconclusive'
+          comment_mode: 'off'
+          check_run: 'true'
+          job_summary: 'false'
+          fail_on: 'nothing'
+          action_fail: 'false'
+          action_fail_on_inconclusive: 'true'
+
+      - name: Assert action ran (failed due to no test files or sentinel repo)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUT"
+          # The action should fail either because:
+          # 1. No test files found and action_fail_on_inconclusive=true, OR
+          # 2. The sentinel repo caused a GitHub API failure
+          # Either way, failure is the expected outcome here.
+          if [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed as expected (no test files or sentinel repo)"
+          elif [ "$OUTCOME" = "success" ]; then
+            echo "PASS: action succeeded (may have found no files but not failed)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

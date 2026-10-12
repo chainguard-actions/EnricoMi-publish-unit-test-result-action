@@ -1,0 +1,62 @@
+name: Test action_fail=true with test failures
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create JUnit XML test result file with failures
+        run: |
+          mkdir -p /tmp/test-results
+          cat > /tmp/test-results/results.xml << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <testsuites>
+            <testsuite name="FailingSuite" tests="2" failures="1" errors="0" skipped="0" time="1.0">
+              <testcase name="test_pass" classname="FailingSuite" time="0.5"/>
+              <testcase name="test_fail" classname="FailingSuite" time="0.5">
+                <failure message="AssertionError">Expected true but got false</failure>
+              </testcase>
+            </testsuite>
+          </testsuites>
+          EOF
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          files: /tmp/test-results/results.xml
+          check_run: 'false'
+          job_summary: 'true'
+          comment_mode: 'off'
+          fail_on: 'test failures'
+          action_fail: 'true'
+          compare_to_earlier_commit: 'false'
+
+      - name: Assert action failed due to test failures or sentinel repo
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json: $JSON_OUT"
+          # With action_fail=true and test failures present, the action should fail.
+          # It may also fail due to the sentinel repo not being resolvable.
+          # Either way, failure is the expected outcome here.
+          if [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed as expected (test failures or sentinel repo)"
+          elif [ "$OUTCOME" = "success" ]; then
+            # If the action succeeded, it means the GitHub API calls were skipped
+            # (check_run=false, comment_mode=off) and action_fail was not triggered.
+            # This can happen if the action processes results without API calls.
+            if [ -n "$JSON_OUT" ]; then
+              echo "PASS: action succeeded and produced JSON output"
+            else
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

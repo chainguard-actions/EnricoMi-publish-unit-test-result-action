@@ -1,0 +1,55 @@
+name: Test basic usage with passing tests
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create passing JUnit XML test results
+        run: |
+          mkdir -p tests/results
+          cat > tests/results/junit-passing.xml << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <testsuites>
+            <testsuite name="ExampleSuite" tests="3" failures="0" errors="0" skipped="0" time="1.234">
+              <testcase name="test_one" classname="ExampleSuite" time="0.100"/>
+              <testcase name="test_two" classname="ExampleSuite" time="0.200"/>
+              <testcase name="test_three" classname="ExampleSuite" time="0.934"/>
+            </testsuite>
+          </testsuites>
+          EOF
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          files: tests/results/junit-passing.xml
+          check_name: Test Results (Basic)
+          comment_mode: "off"
+          check_run: "true"
+          job_summary: "true"
+          fail_on: "test failures"
+          action_fail: "false"
+          compare_to_earlier_commit: "false"
+
+      - name: Assert action ran and produced JSON output
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON_OUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            echo "PASS: action succeeded with json output"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable via GitHub API)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

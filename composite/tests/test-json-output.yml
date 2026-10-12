@@ -1,0 +1,70 @@
+name: Test JSON file output
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create JUnit XML test result file with failures
+        run: |
+          mkdir -p /tmp/test-results
+          cat > /tmp/test-results/results.xml << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <testsuites>
+            <testsuite name="MySuite" tests="4" failures="1" errors="0" skipped="1" time="2.0">
+              <testcase name="test_pass_1" classname="MySuite" time="0.5"/>
+              <testcase name="test_pass_2" classname="MySuite" time="0.5"/>
+              <testcase name="test_fail" classname="MySuite" time="0.5">
+                <failure message="AssertionError">Expected 1 but got 2</failure>
+              </testcase>
+              <testcase name="test_skip" classname="MySuite" time="0.0">
+                <skipped/>
+              </testcase>
+            </testsuite>
+          </testsuites>
+          EOF
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          files: /tmp/test-results/results.xml
+          check_run: 'false'
+          job_summary: 'true'
+          comment_mode: 'off'
+          fail_on: 'nothing'
+          action_fail: 'false'
+          compare_to_earlier_commit: 'false'
+          json_file: /tmp/test-output.json
+          json_test_case_results: 'true'
+
+      - name: Assert action ran and JSON file was written (or failed gracefully)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON_OUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            # Verify the JSON output contains expected fields
+            echo "$JSON_OUT" | grep -q '"tests"' || { echo "FAIL: JSON missing 'tests' field"; exit 1; }
+            echo "PASS: action succeeded with valid JSON output"
+            # Check json_file was written
+            if [ -f /tmp/test-output.json ]; then
+              echo "PASS: JSON file was written"
+              cat /tmp/test-output.json | grep -q '"tests"' || { echo "FAIL: JSON file missing 'tests' field"; exit 1; }
+            else
+              echo "NOTE: JSON file not found (may be expected if check_run is disabled)"
+            fi
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

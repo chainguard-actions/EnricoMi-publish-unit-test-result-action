@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Test Suite" tests="4" failures="0" errors="0" skipped="2" time="0.800">
+  <testsuite name="com.example.SkippedTests" tests="4" failures="0" errors="0" skipped="2" time="0.800">
+    <testcase name="testAddition" classname="com.example.SkippedTests" time="0.300"/>
+    <testcase name="testSubtraction" classname="com.example.SkippedTests" time="0.500"/>
+    <testcase name="testSkipped1" classname="com.example.SkippedTests" time="0.000">
+      <skipped message="Test skipped intentionally"/>
+    </testcase>
+    <testcase name="testSkipped2" classname="com.example.SkippedTests" time="0.000">
+      <skipped/>
+    </testcase>
+  </testsuite>
+</testsuites>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Test Suite" tests="3" failures="1" errors="0" time="1.500">
+  <testsuite name="com.example.FailingTests" tests="3" failures="1" errors="0" time="1.500">
+    <testcase name="testAddition" classname="com.example.FailingTests" time="0.100"/>
+    <testcase name="testSubtraction" classname="com.example.FailingTests" time="0.200">
+      <failure message="AssertionError: expected 5 but got 4" type="AssertionError">
+        AssertionError: expected 5 but got 4
+          at com.example.FailingTests.testSubtraction(FailingTests.java:25)
+      </failure>
+    </testcase>
+    <testcase name="testMultiplication" classname="com.example.FailingTests" time="1.200"/>
+  </testsuite>
+</testsuites>

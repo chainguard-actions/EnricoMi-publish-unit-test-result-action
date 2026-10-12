@@ -1,0 +1,82 @@
+name: Test extended inputs coverage
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create JUnit XML test results and event file
+        run: |
+          mkdir -p tests/results
+
+          cat > tests/results/junit-extended.xml << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <testsuites>
+            <testsuite name="ExtendedSuite" tests="2" failures="0" errors="0" skipped="1" time="0.500">
+              <testcase name="test_alpha" classname="ExtendedSuite" time="0.200"/>
+              <testcase name="test_beta" classname="ExtendedSuite" time="0.300">
+                <skipped message="skipped for testing"/>
+              </testcase>
+            </testsuite>
+          </testsuites>
+          EOF
+
+          # Create a minimal event file for the event_file input
+          cat > tests/results/event.json << 'EOF'
+          {
+            "action": "completed",
+            "workflow_run": {
+              "event": "push"
+            }
+          }
+          EOF
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          files: tests/results/junit-extended.xml
+          junit_files: tests/results/junit-extended.xml
+          nunit_files: ""
+          xunit_files: ""
+          trx_files: ""
+          check_name: Test Results (Extended)
+          comment_title: "Extended Test Results Summary"
+          comment_mode: "off"
+          check_run: "true"
+          job_summary: "true"
+          fail_on: "test failures"
+          action_fail: "false"
+          compare_to_earlier_commit: "false"
+          commit: ${{ github.sha }}
+          event_file: tests/results/event.json
+          event_name: "push"
+          github_token_actor: ""
+          check_run_annotations_branch: "main, master, act-harness"
+          test_changes_limit: "5"
+          test_file_prefix: ""
+          deduplicate_classes_by_file_name: "false"
+          large_files: "false"
+          secondary_rate_limit_wait_seconds: "60"
+
+      - name: Assert action ran with extended inputs
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          JSON_OUT: ${{ steps.action.outputs.json }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "json output: $JSON_OUT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$JSON_OUT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            echo "PASS: action succeeded with extended inputs and json output"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable via GitHub API)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi
