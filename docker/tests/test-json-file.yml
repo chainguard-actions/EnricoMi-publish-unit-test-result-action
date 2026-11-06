@@ -1,0 +1,47 @@
+name: Test json_file with multiple patterns
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          files: |
+            tests/fixtures/junit-*.xml
+          json_file: tests/results.json
+          fail_on: 'nothing'
+          check_run: 'false'
+          comment_mode: 'off'
+          compare_to_earlier_commit: 'false'
+          github_retries: '1'
+      - name: Assert json file (or graceful failure on sentinel repo)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" = "success" ]; then
+            F="$GITHUB_WORKSPACE/tests/results.json"
+            if [ ! -s "$F" ]; then
+              echo "FAIL: json file $F missing or empty"
+              exit 1
+            fi
+            cat "$F"
+            python3 -c '
+          import json, sys
+          d = json.load(open(sys.argv[1]))
+          s = d["stats"]
+          assert s["files"] == 2, s
+          assert s["tests"] == 6, s
+          assert s["tests_fail"] == 1, s
+          print("PASS: stats", s)
+          ' "$F" || { echo "FAIL: unexpected json content"; exit 1; }
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

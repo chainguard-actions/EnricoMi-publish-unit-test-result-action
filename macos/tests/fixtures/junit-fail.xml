@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="example.FailSuite" tests="3" failures="1" errors="0" skipped="1" time="0.6">
+    <testcase classname="example.FailSuite" name="test_ok" time="0.1"/>
+    <testcase classname="example.FailSuite" name="test_broken" time="0.2">
+      <failure message="expected 1 but was 2" type="AssertionError">AssertionError: expected 1 but was 2</failure>
+    </testcase>
+    <testcase classname="example.FailSuite" name="test_skipped" time="0.0">
+      <skipped message="not implemented"/>
+    </testcase>
+  </testsuite>
+</testsuites>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="fail-suite" tests="3" failures="1" errors="0" skipped="1" time="1.0">
+    <testcase classname="pkg.FailTest" name="test_ok" time="0.3"/>
+    <testcase classname="pkg.FailTest" name="test_broken" time="0.4">
+      <failure message="expected 1 but was 2" type="AssertionError">AssertionError: expected 1 but was 2</failure>
+    </testcase>
+    <testcase classname="pkg.FailTest" name="test_skipped" time="0.0">
+      <skipped message="not today"/>
+    </testcase>
+  </testsuite>
+</testsuites>

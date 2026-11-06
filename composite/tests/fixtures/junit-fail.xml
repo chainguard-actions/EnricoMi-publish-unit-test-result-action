@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="suite-b" tests="4" failures="1" errors="1" skipped="1" time="2.0">
+    <testcase classname="pkg.ClassC" name="test_ok" time="0.5"/>
+    <testcase classname="pkg.ClassC" name="test_fail" time="0.5">
+      <failure message="assertion failed">expected 1 but was 2</failure>
+    </testcase>
+    <testcase classname="pkg.ClassC" name="test_error" time="0.5">
+      <error message="boom">RuntimeError: boom</error>
+    </testcase>
+    <testcase classname="pkg.ClassC" name="test_skip" time="0.5">
+      <skipped message="not today"/>
+    </testcase>
+  </testsuite>
+</testsuites>

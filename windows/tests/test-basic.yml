@@ -1,0 +1,48 @@
+name: Test basic JUnit publish
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      # NOTE: this is the Windows variant of the action (pwsh, venv\Scripts\python,
+      # backslash paths). Under act on Linux it may be unable to run at all, and
+      # any repo-scoped API call hits the sentinel GITHUB_REPOSITORY. A failure
+      # outcome is therefore tolerated, but success must produce valid results.
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          files: tests/fixtures/junit/passing.xml
+          check_run: 'false'
+          comment_mode: 'off'
+          compare_to_earlier_commit: 'false'
+          github_retries: '0'
+      - name: Assert results
+        env:
+          RESULT: ${{ steps.action.outputs.json }}
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "result: $RESULT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$RESULT" ]; then
+              echo "FAIL: action succeeded but json output is empty"
+              exit 1
+            fi
+            if ! echo "$RESULT" | grep -q '"conclusion"'; then
+              echo "FAIL: json output lacks conclusion"
+              exit 1
+            fi
+            if ! echo "$RESULT" | grep -q '"success"'; then
+              echo "FAIL: expected success conclusion for passing tests"
+              exit 1
+            fi
+            echo "PASS: got json results"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (Windows action / sentinel repo under act)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

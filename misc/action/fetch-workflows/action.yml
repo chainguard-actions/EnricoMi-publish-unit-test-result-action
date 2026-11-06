@@ -1,0 +1,34 @@
+name: 'Fetch workflows'
+author: 'EnricoMi'
+description: 'A GitHub Action to fetc number of dependent workflows'
+
+outputs:
+  total_workflows:
+    description: 'Total number of workflows using this action'
+    value: ${{ steps.workflows.outputs.total }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Fetch workflows
+      id: workflows
+      shell: bash
+      run: |
+        for i in {1..60}
+        do
+          content=$(curl -s https://github.com/EnricoMi/publish-unit-test-result-action/network/dependents | grep -B1 Repositories | tr '\n' ' ' | sed -E -e "s/ +/ /g")
+          if [[ $content =~ ([0-9,]+)( Repositories) ]]
+          then
+            workflows="${BASH_REMATCH[1]}"
+            echo "total=$workflows" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "Attempt $i failed"
+          sleep 60
+        done
+        echo "Giving up"
+        exit 1
+
+branding:
+  icon: 'download-cloud'
+  color: 'green'

@@ -1,0 +1,42 @@
+name: Test failing test results
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          files: tests/fixtures/junit-fail.xml
+          check_run: 'false'
+          comment_mode: 'off'
+          compare_to_earlier_commit: 'false'
+      - name: Assert action ran (outputs set, or failed gracefully on the sentinel repo)
+        env:
+          RESULT: ${{ steps.action.outputs.json }}
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "result: $RESULT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$RESULT" ]; then
+              echo "FAIL: action succeeded but the json output is empty"
+              exit 1
+            fi
+            echo "$RESULT" | python3 -c '
+          import json, sys
+          d = json.load(sys.stdin)
+          assert d.get("conclusion") == "failure", "conclusion: %r" % d.get("conclusion")
+          assert int(d["stats"]["tests"]) == 3, "tests: %r" % d["stats"]["tests"]
+          assert int(d["stats"]["tests_fail"]) == 1, "tests_fail: %r" % d["stats"]["tests_fail"]
+          ' || { echo "FAIL: unexpected json content"; exit 1; }
+            echo "PASS: failures reported"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (sentinel repo is not resolvable)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="example.FailSuite" tests="2" failures="1" errors="0" skipped="0" time="0.7">
+    <testcase classname="example.FailSuite" name="test_ok" time="0.2"/>
+    <testcase classname="example.FailSuite" name="test_broken" time="0.5">
+      <failure message="assertion failed">expected 1 but was 2</failure>
+    </testcase>
+  </testsuite>
+</testsuites>
